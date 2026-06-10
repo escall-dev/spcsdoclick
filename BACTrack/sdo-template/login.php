@@ -377,7 +377,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-container">
         <div class="login-card">
             <div class="login-header">
-                <div class="logo-badge"><img src="/SDO-BACtrack/sdo-template/logo-imgs/sdo-logo.jpg" alt="SDO San Pedro Logo" style="width:90px;height:90px;object-fit:cover;clip-path:circle(70% at 50% 50%);background-color:transparent;mix-blend-mode:multiply;"></div>
+                <div class="logo-badge"><img src="/BACTrack/sdo-template/logo-imgs/sdo-logo.jpg" alt="SDO San Pedro Logo" style="width:90px;height:90px;object-fit:cover;clip-path:circle(70% at 50% 50%);background-color:transparent;mix-blend-mode:multiply;"></div>
                 <h1>SDO CTS Admin</h1>
 
                 <p>Schools Division Office of San Pedro City - Complaint Tracking System</p>

@@ -82,7 +82,7 @@ $pageTitle = $pageTitles[$currentPage] ?? 'Announcements';
                 <div class="logo">
                     <div class="logo-icon-wrapper">
                         <div class="logo-badge">
-                            <img src="/SDO-BACtrack/sdo-template/logo-imgs/sdo-logo.jpg" alt="SDO San Pedro Logo">
+                            <img src="/BACTrack/sdo-template/logo-imgs/sdo-logo.jpg" alt="SDO San Pedro Logo">
                         </div>
                     </div>
                     <div class="logo-text">
