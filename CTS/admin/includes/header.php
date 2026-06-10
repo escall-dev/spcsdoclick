@@ -96,7 +96,7 @@ $pageTitle = $pageTitles[$currentPage] ?? 'Admin Panel';
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
-                    <img src="/CTS/assets/img/sdo-logo.jpg" alt="SDO Logo" class="logo-img">
+                    <img src="../assets/img/sdo-logo.jpg" alt="SDO Logo" class="logo-img">
                     <div class="logo-text">
                         <span class="logo-title">SDO CTS</span>
                         <span class="logo-subtitle">ADMIN PANEL</span>
