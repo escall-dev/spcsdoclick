@@ -7,57 +7,41 @@
  * Configure via environment variables (.env file)
  */
 
-// Load environment variables if not already loaded
-if (!function_exists('loadEnvFile')) {
-    function loadEnvFile() {
-        $envFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env';
-        if (is_readable($envFile)) {
-            $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            foreach ($lines as $line) {
-                if (strpos(trim($line), '#') === 0) { continue; }
-                $pos = strpos($line, '=');
-                if ($pos === false) { continue; }
-                $key = trim(substr($line, 0, $pos));
-                $val = trim(substr($line, $pos + 1));
-                // Remove optional surrounding quotes
-                if ((strlen($val) >= 2 && $val[0] === '"' && substr($val, -1) === '"') || 
-                    (strlen($val) >= 2 && $val[0] === "'" && substr($val, -1) === "'")) {
-                    $val = substr($val, 1, -1);
-                }
-                if (!getenv($key)) {
-                    putenv("$key=$val");
-                    $_ENV[$key] = $val;
-                }
-            }
-        }
-    }
-    loadEnvFile();
+require_once __DIR__ . '/env.php';
+cts_load_env();
+
+$smtpHost = cts_env('SMTP_HOST', 'smtp.gmail.com');
+$smtpPassword = cts_env('SMTP_PASSWORD', '');
+
+// Gmail app passwords are often copied with spaces; strip them for SMTP auth.
+if (stripos($smtpHost, 'gmail') !== false) {
+    $smtpPassword = str_replace(' ', '', $smtpPassword);
 }
 
 // SMTP Configuration - loaded from environment variables
-define('MAIL_ENABLED', filter_var(getenv('MAIL_ENABLED') ?: 'true', FILTER_VALIDATE_BOOLEAN));
-define('SMTP_HOST', getenv('SMTP_HOST') ?: 'smtp.gmail.com');
-define('SMTP_PORT', intval(getenv('SMTP_PORT') ?: 587));
-define('SMTP_USERNAME', getenv('SMTP_USERNAME') ?: '');
-define('SMTP_PASSWORD', getenv('SMTP_PASSWORD') ?: '');
-define('SMTP_ENCRYPTION', getenv('SMTP_ENCRYPTION') ?: 'tls'); // 'tls' or 'ssl'
-define('SMTP_AUTH', filter_var(getenv('SMTP_AUTH') ?: 'true', FILTER_VALIDATE_BOOLEAN));
+define('MAIL_ENABLED', filter_var(cts_env('MAIL_ENABLED', 'true'), FILTER_VALIDATE_BOOLEAN));
+define('SMTP_HOST', $smtpHost);
+define('SMTP_PORT', intval(cts_env('SMTP_PORT', 587)));
+define('SMTP_USERNAME', cts_env('SMTP_USERNAME', ''));
+define('SMTP_PASSWORD', $smtpPassword);
+define('SMTP_ENCRYPTION', cts_env('SMTP_ENCRYPTION', 'tls')); // 'tls' or 'ssl'
+define('SMTP_AUTH', filter_var(cts_env('SMTP_AUTH', 'true'), FILTER_VALIDATE_BOOLEAN));
 
 // Sender Configuration
-define('MAIL_FROM_ADDRESS', getenv('MAIL_FROM_ADDRESS') ?: '');
-define('MAIL_FROM_NAME', getenv('MAIL_FROM_NAME') ?: 'SDO CTS - San Pedro Division Office');
-define('MAIL_REPLY_TO', getenv('MAIL_REPLY_TO') ?: '');
+define('MAIL_FROM_ADDRESS', cts_env('MAIL_FROM_ADDRESS', ''));
+define('MAIL_FROM_NAME', cts_env('MAIL_FROM_NAME', 'SDO CTS - San Pedro Division Office'));
+define('MAIL_REPLY_TO', cts_env('MAIL_REPLY_TO', ''));
 
 // Admin notification recipients (comma-separated emails)
-define('ADMIN_EMAIL_RECIPIENTS', getenv('ADMIN_EMAIL_RECIPIENTS') ?: '');
+define('ADMIN_EMAIL_RECIPIENTS', cts_env('ADMIN_EMAIL_RECIPIENTS', ''));
 
 // Email Settings
 define('MAIL_CHARSET', 'UTF-8');
-define('MAIL_DEBUG', intval(getenv('MAIL_DEBUG') ?: 0)); // 0 = off, 1 = client, 2 = server
+define('MAIL_DEBUG', intval(cts_env('MAIL_DEBUG', 0))); // 0 = off, 1 = client, 2 = server
 
 // Email Templates Path
 define('EMAIL_TEMPLATES_PATH', __DIR__ . '/../services/email/templates/');
 
 // System URLs for email content
-define('SYSTEM_BASE_URL', getenv('SYSTEM_BASE_URL') ?: 'http://localhost/SDO-cts');
+define('SYSTEM_BASE_URL', cts_env('SYSTEM_BASE_URL', 'http://localhost/SDO-cts'));
 define('TRACKING_URL', SYSTEM_BASE_URL . '/track.php');

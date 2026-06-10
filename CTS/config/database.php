@@ -6,36 +6,13 @@
  * Credentials are loaded from the .env file in the project root.
  */
 
-// Load environment variables from .env if not already loaded
-if (!function_exists('loadEnvFile')) {
-    function loadEnvFile() {
-        $envFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env';
-        if (is_readable($envFile)) {
-            $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            foreach ($lines as $line) {
-                if (strpos(trim($line), '#') === 0) { continue; }
-                $pos = strpos($line, '=');
-                if ($pos === false) { continue; }
-                $key = trim(substr($line, 0, $pos));
-                $val = trim(substr($line, $pos + 1));
-                if ((strlen($val) >= 2 && $val[0] === '"' && substr($val, -1) === '"') || 
-                    (strlen($val) >= 2 && $val[0] === "'" && substr($val, -1) === "'")) {
-                    $val = substr($val, 1, -1);
-                }
-                if (!getenv($key)) {
-                    putenv("$key=$val");
-                    $_ENV[$key] = $val;
-                }
-            }
-        }
-    }
-}
-loadEnvFile();
+require_once __DIR__ . '/env.php';
+cts_load_env();
 
-define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
-define('DB_NAME', getenv('DB_NAME') ?: 'sdo_cts');
-define('DB_USER', getenv('DB_USER') ?: 'root');
-define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : '');
+define('DB_HOST', cts_env('DB_HOST', 'localhost'));
+define('DB_NAME', cts_env('DB_NAME', 'sdo_cts'));
+define('DB_USER', cts_env('DB_USER', 'root'));
+define('DB_PASS', cts_env('DB_PASS', ''));
 
 class Database {
     private static $instance = null;

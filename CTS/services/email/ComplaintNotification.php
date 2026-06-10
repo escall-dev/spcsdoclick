@@ -50,12 +50,18 @@ class ComplaintNotification {
         $attachments = $this->getComplaintAttachments($complaintId);
 
         // Send to complainant with attachments
-        $this->sendToComplainant($complainantEmail, $complainantName, $referenceNumber, $submittedDate, $complaintId, $complaintData, $attachments);
+        $complainantSent = $this->sendToComplainant($complainantEmail, $complainantName, $referenceNumber, $submittedDate, $complaintId, $complaintData, $attachments);
+        if (!$complainantSent) {
+            error_log("Failed to send complainant confirmation for {$referenceNumber}: " . $this->emailService->getLastError());
+        }
 
         // Send to admin/assigned office (without attachments for security)
-        $this->sendToAdmin($complaintData, $submittedDate);
+        $adminSent = $this->sendToAdmin($complaintData, $submittedDate);
+        if (!$adminSent) {
+            error_log("Failed to send admin notification for {$referenceNumber}: " . $this->emailService->getLastError());
+        }
 
-        return true;
+        return $complainantSent;
     }
 
     /**
@@ -202,17 +208,20 @@ class ComplaintNotification {
             'base_url' => SYSTEM_BASE_URL
         ]);
 
+        $allSent = true;
         foreach ($adminEmails as $adminEmail) {
-            $this->emailService->send(
+            if (!$this->emailService->send(
                 $adminEmail,
                 $subject,
                 $body,
                 'complaint_submitted_admin',
                 $complaintData['id'] ?? null
-            );
+            )) {
+                $allSent = false;
+            }
         }
 
-        return true;
+        return $allSent;
     }
 
     /**

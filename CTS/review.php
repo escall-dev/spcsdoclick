@@ -117,10 +117,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_submit'])) {
                     'reference_number' => $referenceNumber
                 ]);
                 $emailNotification = new ComplaintNotification();
-                $emailNotification->sendComplaintSubmittedNotification($notificationData);
+                $emailSent = $emailNotification->sendComplaintSubmittedNotification($notificationData);
+                if (!$emailSent) {
+                    error_log("Complaint {$referenceNumber} saved but confirmation email was not sent.");
+                }
             } catch (Throwable $emailError) {
                 // Log email error but don't interrupt the submission process
-                error_log("Email notification error: " . $emailError->getMessage());
+                error_log("Email notification error for {$referenceNumber}: " . $emailError->getMessage());
             }
 
             unset($_SESSION['form_data']);

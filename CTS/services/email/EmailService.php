@@ -35,6 +35,15 @@ class EmailService {
             if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
                 throw new Exception("PHPMailer class not found. Composer dependencies missing.");
             }
+
+            if (SMTP_AUTH && (SMTP_USERNAME === '' || SMTP_PASSWORD === '')) {
+                throw new Exception('SMTP credentials are not configured. Check CTS/.env on the server.');
+            }
+
+            if (MAIL_FROM_ADDRESS === '') {
+                throw new Exception('MAIL_FROM_ADDRESS is not configured. Check CTS/.env on the server.');
+            }
+
             $this->mailer = new PHPMailer(true);
 
             // Server settings
@@ -44,7 +53,7 @@ class EmailService {
             $this->mailer->SMTPAuth = SMTP_AUTH;
             $this->mailer->Username = SMTP_USERNAME;
             $this->mailer->Password = SMTP_PASSWORD;
-            $this->mailer->Timeout = 5; // Prevent 30-second hang which causes 500 Internal Server Error
+            $this->mailer->Timeout = 15;
             
             // Set encryption
             if (SMTP_ENCRYPTION === 'tls') {
