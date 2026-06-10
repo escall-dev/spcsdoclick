@@ -59,7 +59,7 @@ try {
     
     // Log activity
     if ($isProgressUpdate) {
-        $auth->logActivity('progress_update', 'complaint', $complaintId, 
+        $auth->logActivity('update', 'complaint', $complaintId, 
             "Added progress update for " . $complaint['reference_number']);
     } else {
         $auth->logActivity('status_change', 'complaint', $complaintId, 
@@ -71,7 +71,7 @@ try {
         try {
             $emailNotification = new ComplaintNotification();
             $emailNotification->sendComplaintResolvedNotification($complaint, $notes);
-        } catch (Exception $emailError) {
+        } catch (Throwable $emailError) {
             // Log email error but don't interrupt the status update process
             error_log("Email notification error on close: " . $emailError->getMessage());
         }
@@ -81,8 +81,8 @@ try {
         ? 'Progress update added successfully.' 
         : 'Status updated successfully.';
     
-} catch (Exception $e) {
-    $_SESSION['flash_error'] = $e->getMessage();
+} catch (Throwable $e) {
+    $_SESSION['flash_error'] = 'System Error: ' . $e->getMessage();
 }
 
 // Redirect back

@@ -8,9 +8,9 @@ require_once __DIR__ . '/env.php';
 
 define('DB_HOST', app_env_get('DB_HOST', 'localhost'));
 define('DB_PORT', app_env_get_int('DB_PORT', 3306));
-define('DB_NAME', app_env_get('DB_NAME', 'u813957308_sdo_bac'));
-define('DB_USER', app_env_get('DB_USER', 'u813957308_BACsdospc'));
-define('DB_PASS', app_env_get('DB_PASS', 'BAC12345sanpedro'));
+define('DB_NAME', app_env_get('DB_NAME', 'sdo_bac'));
+define('DB_USER', app_env_get('DB_USER', 'root'));
+define('DB_PASS', app_env_get('DB_PASS', ''));
 define('DB_CHARSET', app_env_get('DB_CHARSET', 'utf8mb4'));
 
 class Database {

@@ -2316,7 +2316,7 @@ function landingAnnouncementLinkLabel($linkHref) {
         <div class="header-inner">
             <div class="header-brand">
                 <div class="header-logo-wrap">
-                    <img src="/BACTrack/sdo-template/logo-imgs/sdo-logo.jpg" alt="SDO Logo">
+                    <img src="<?php echo rtrim(APP_URL, '/'); ?>/sdo-template/logo-imgs/sdo-logo.jpg" alt="SDO Logo">
                 </div>
                 <div class="header-text-group">
                     <h1><?php echo APP_NAME; ?></h1>
@@ -2888,7 +2888,7 @@ function landingAnnouncementLinkLabel($linkHref) {
             </button>
             <div class="dark-modal-body">
                 <div class="dark-modal-header">
-                    <img src="/BACTrack/sdo-template/logo-imgs/sdo-logo.jpg" alt="SDO Logo" class="dark-modal-logo">
+                    <img src="<?php echo rtrim(APP_URL, '/'); ?>/sdo-template/logo-imgs/sdo-logo.jpg" alt="SDO Logo" class="dark-modal-logo">
                     <h2><?php echo APP_NAME; ?></h2>
                     <p><?php echo APP_SUBTITLE; ?></p>
                 </div>

@@ -13,13 +13,13 @@ if (!function_exists('loadEnvFile')) {
         if (is_readable($envFile)) {
             $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             foreach ($lines as $line) {
-                if (str_starts_with(trim($line), '#')) { continue; }
+                if (strpos(trim($line), '#') === 0) { continue; }
                 $pos = strpos($line, '=');
                 if ($pos === false) { continue; }
                 $key = trim(substr($line, 0, $pos));
                 $val = trim(substr($line, $pos + 1));
-                if ((str_starts_with($val, '"') && str_ends_with($val, '"')) || 
-                    (str_starts_with($val, "'") && str_ends_with($val, "'"))) {
+                if ((strlen($val) >= 2 && $val[0] === '"' && substr($val, -1) === '"') || 
+                    (strlen($val) >= 2 && $val[0] === "'" && substr($val, -1) === "'")) {
                     $val = substr($val, 1, -1);
                 }
                 if (!getenv($key)) {
@@ -33,9 +33,9 @@ if (!function_exists('loadEnvFile')) {
 loadEnvFile();
 
 define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
-define('DB_NAME', getenv('DB_NAME') ?: 'u813957308_sdo_cts');
-define('DB_USER', getenv('DB_USER') ?: 'u813957308_sdo_cts');
-define('DB_PASS', getenv('DB_PASS') ?: 'CTSsdoclick2021');
+define('DB_NAME', getenv('DB_NAME') ?: 'sdo_cts');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : '');
 
 class Database {
     private static $instance = null;
