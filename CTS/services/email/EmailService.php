@@ -79,6 +79,10 @@ class EmailService {
      * Reset mailer for new email
      */
     private function resetMailer() {
+        if (!$this->mailer) {
+            return;
+        }
+
         $this->mailer->clearAddresses();
         $this->mailer->clearAttachments();
         $this->mailer->clearCCs();
@@ -110,6 +114,10 @@ class EmailService {
      * This ensures logos display properly in all email clients
      */
     private function embedLogos() {
+        if (!$this->mailer) {
+            return;
+        }
+
         $sdoLogoPath = __DIR__ . '/../../assets/img/sdo-logo.jpg';
         $bagongPilipinasLogoPath = __DIR__ . '/../../assets/img/bagongpilpinas-logo.png';
 
@@ -128,6 +136,11 @@ class EmailService {
      * Set custom sender address
      */
     public function setFrom($email, $name = null) {
+        if (!$this->mailer) {
+            $this->lastError = 'Mailer not initialized';
+            return false;
+        }
+
         try {
             $this->mailer->setFrom($email, $name ?: MAIL_FROM_NAME);
             return true;
@@ -152,12 +165,18 @@ class EmailService {
             return true;
         }
 
+        if (!$this->mailer) {
+            $this->lastError = $this->lastError ?: 'Mailer not initialized';
+            $recipients = is_array($to) ? $to : [$to];
+            foreach ($recipients as $recipient) {
+                $this->logEmail(trim($recipient), $subject, $eventType, $referenceId, 'failed', $this->lastError);
+            }
+            return false;
+        }
+
         $this->resetMailer();
 
         try {
-            if (!$this->mailer) {
-                throw new Exception("Mailer not initialized");
-            }
             // Add recipient(s)
             $recipients = is_array($to) ? $to : [$to];
             foreach ($recipients as $recipient) {
@@ -201,12 +220,18 @@ class EmailService {
             return true;
         }
 
+        if (!$this->mailer) {
+            $this->lastError = $this->lastError ?: 'Mailer not initialized';
+            $recipients = is_array($to) ? $to : [$to];
+            foreach ($recipients as $recipient) {
+                $this->logEmail(trim($recipient), $subject, $eventType, $referenceId, 'failed', $this->lastError);
+            }
+            return false;
+        }
+
         $this->resetMailer();
 
         try {
-            if (!$this->mailer) {
-                throw new Exception("Mailer not initialized");
-            }
             $recipients = is_array($to) ? $to : [$to];
             foreach ($recipients as $recipient) {
                 $this->mailer->addAddress(trim($recipient));
@@ -265,12 +290,18 @@ class EmailService {
             return true;
         }
 
+        if (!$this->mailer) {
+            $this->lastError = $this->lastError ?: 'Mailer not initialized';
+            $recipients = is_array($to) ? $to : [$to];
+            foreach ($recipients as $recipient) {
+                $this->logEmail(trim($recipient), $subject, $eventType, $referenceId, 'failed', $this->lastError);
+            }
+            return false;
+        }
+
         $this->resetMailer();
 
         try {
-            if (!$this->mailer) {
-                throw new Exception("Mailer not initialized");
-            }
             $recipients = is_array($to) ? $to : [$to];
             foreach ($recipients as $recipient) {
                 $this->mailer->addAddress(trim($recipient));
@@ -363,6 +394,10 @@ class EmailService {
      * Test SMTP connection
      */
     public function testConnection() {
+        if (!$this->mailer) {
+            return ['success' => false, 'message' => $this->lastError ?: 'Mailer not initialized'];
+        }
+
         try {
             $this->mailer->smtpConnect();
             $this->mailer->smtpClose();

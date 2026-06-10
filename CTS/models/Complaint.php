@@ -98,7 +98,7 @@ class Complaint {
             $data['desired_action_relief'] ?? '',
             !empty($data['certification_agreed']) ? 1 : 0,
             $data['printed_name_pangalan'] ?? '',
-            (isset($data['signature_type']) && in_array($data['signature_type'], ['digital', 'typed'])) ? $data['signature_type'] : 'typed',
+            (isset($data['signature_type']) && in_array($data['signature_type'], ['digital', 'typed', 'uploaded_form'], true)) ? $data['signature_type'] : 'typed',
             $data['signature_data'] ?? '',
             date('Y-m-d')
         ];
