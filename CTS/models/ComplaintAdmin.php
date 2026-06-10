@@ -187,7 +187,7 @@ class ComplaintAdmin {
         }
 
         $allowedTransitions = STATUS_WORKFLOW[$complaint['status']] ?? [];
-        if (!in_array($status, $allowedTransitions)) {
+        if ($complaint['status'] !== $status && !in_array($status, $allowedTransitions)) {
             throw new Exception('Invalid status transition');
         }
 

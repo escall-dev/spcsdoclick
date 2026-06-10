@@ -6,7 +6,10 @@
  * Handles all email operations using PHPMailer with SMTP
  */
 
-require_once __DIR__ . '/../../vendor/autoload.php';
+$autoloadPath = __DIR__ . '/../../vendor/autoload.php';
+if (file_exists($autoloadPath)) {
+    require_once $autoloadPath;
+}
 require_once __DIR__ . '/../../config/mail_config.php';
 require_once __DIR__ . '/../../config/database.php';
 
@@ -28,9 +31,12 @@ class EmailService {
      * Initialize PHPMailer with SMTP configuration
      */
     private function initializeMailer() {
-        $this->mailer = new PHPMailer(true);
-
         try {
+            if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+                throw new Exception("PHPMailer class not found. Composer dependencies missing.");
+            }
+            $this->mailer = new PHPMailer(true);
+
             // Server settings
             $this->mailer->SMTPDebug = MAIL_DEBUG;
             $this->mailer->isSMTP();
@@ -38,6 +44,7 @@ class EmailService {
             $this->mailer->SMTPAuth = SMTP_AUTH;
             $this->mailer->Username = SMTP_USERNAME;
             $this->mailer->Password = SMTP_PASSWORD;
+            $this->mailer->Timeout = 5; // Prevent 30-second hang which causes 500 Internal Server Error
             
             // Set encryption
             if (SMTP_ENCRYPTION === 'tls') {
@@ -62,8 +69,9 @@ class EmailService {
             // HTML email
             $this->mailer->isHTML(true);
 
-        } catch (Exception $e) {
-            $this->lastError = $e->getMessage();
+        } catch (Throwable $e) {
+            $this->lastError = "Mailer Initialization Error: " . $e->getMessage();
+            error_log($this->lastError);
         }
     }
 
@@ -147,6 +155,9 @@ class EmailService {
         $this->resetMailer();
 
         try {
+            if (!$this->mailer) {
+                throw new Exception("Mailer not initialized");
+            }
             // Add recipient(s)
             $recipients = is_array($to) ? $to : [$to];
             foreach ($recipients as $recipient) {
@@ -169,8 +180,8 @@ class EmailService {
 
             return true;
 
-        } catch (Exception $e) {
-            $this->lastError = $this->mailer->ErrorInfo;
+        } catch (Throwable $e) {
+            $this->lastError = $this->mailer ? $this->mailer->ErrorInfo : $e->getMessage();
             
             // Log failed send
             $recipients = is_array($to) ? $to : [$to];
@@ -193,6 +204,9 @@ class EmailService {
         $this->resetMailer();
 
         try {
+            if (!$this->mailer) {
+                throw new Exception("Mailer not initialized");
+            }
             $recipients = is_array($to) ? $to : [$to];
             foreach ($recipients as $recipient) {
                 $this->mailer->addAddress(trim($recipient));
@@ -217,8 +231,8 @@ class EmailService {
 
             return true;
 
-        } catch (Exception $e) {
-            $this->lastError = $this->mailer->ErrorInfo;
+        } catch (Throwable $e) {
+            $this->lastError = $this->mailer ? $this->mailer->ErrorInfo : $e->getMessage();
             
             $recipients = is_array($to) ? $to : [$to];
             foreach ($recipients as $recipient) {
@@ -254,6 +268,9 @@ class EmailService {
         $this->resetMailer();
 
         try {
+            if (!$this->mailer) {
+                throw new Exception("Mailer not initialized");
+            }
             $recipients = is_array($to) ? $to : [$to];
             foreach ($recipients as $recipient) {
                 $this->mailer->addAddress(trim($recipient));
@@ -282,8 +299,8 @@ class EmailService {
 
             return true;
 
-        } catch (Exception $e) {
-            $this->lastError = $this->mailer->ErrorInfo;
+        } catch (Throwable $e) {
+            $this->lastError = $this->mailer ? $this->mailer->ErrorInfo : $e->getMessage();
             
             $recipients = is_array($to) ? $to : [$to];
             foreach ($recipients as $recipient) {

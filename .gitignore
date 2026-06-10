@@ -49,7 +49,7 @@ BACTrack/uploads/projects/*
 !BACTrack/uploads/projects/.gitkeep
 
 # Composer
-vendor/
+# vendor/ (commented out so dependencies are pushed to live server)
 composer.phar
 
 # Any local configuration overrides
