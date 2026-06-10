@@ -9,8 +9,7 @@
 // Load environment variables from .env if not already loaded
 if (!function_exists('loadEnvFile')) {
     function loadEnvFile() {
-        // Point to the root .env file which is one directory higher than the CTS app root
-        $envFile = dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . '.env';
+        $envFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env';
         if (is_readable($envFile)) {
             $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             foreach ($lines as $line) {
@@ -34,9 +33,9 @@ if (!function_exists('loadEnvFile')) {
 loadEnvFile();
 
 define('DB_HOST', getenv('DB_HOST'));
-define('DB_NAME', getenv('CTS_DB_NAME'));
-define('DB_USER', getenv('CTS_DB_USER'));
-define('DB_PASS', getenv('CTS_DB_PASS'));
+define('DB_NAME', getenv('DB_NAME'));
+define('DB_USER', getenv('DB_USER'));
+define('DB_PASS', getenv('DB_PASS'));
 
 class Database {
     private static $instance = null;
