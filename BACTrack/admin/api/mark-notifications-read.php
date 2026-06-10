@@ -27,6 +27,10 @@ $notificationModel = new Notification();
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $notificationModel->markAllAsRead($auth->getUserId());
     $redirect = APP_URL . '/admin/';
+    $token = $auth->getToken();
+    if ($token) {
+        $redirect .= (strpos($redirect, '?') !== false ? '&' : '?') . AUTH_TOKEN_PARAM . '=' . urlencode($token);
+    }
     header('Location: ' . $redirect);
     exit;
 }

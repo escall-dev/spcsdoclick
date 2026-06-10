@@ -170,6 +170,11 @@ class Auth {
      * Redirect to URL with auth token appended (keeps user logged in after POST redirect).
      */
     public function redirect($url) {
+        $token = $this->getToken();
+        if ($token) {
+            $sep = strpos($url, '?') !== false ? '&' : '?';
+            $url .= $sep . AUTH_TOKEN_PARAM . '=' . urlencode($token);
+        }
         header('Location: ' . $url);
         exit;
     }

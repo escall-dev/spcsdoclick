@@ -1,7 +1,6 @@
 /**
  * Auth Token - Multi-tab session support
  * Stores token in sessionStorage and cookies (per-tab isolation)
- * WITHOUT exposing the token in the URL.
  */
 (function() {
     var AUTH_TOKEN_KEY = 'auth_token';
@@ -9,6 +8,18 @@
     var APP_URL = (typeof window.SDO_BACTRACK_APP_URL !== 'undefined') ? window.SDO_BACTRACK_APP_URL : '/SDO-BACtrack';
     var TOKEN_PARAM = (typeof window.SDO_BACTRACK_TOKEN_PARAM !== 'undefined') ? window.SDO_BACTRACK_TOKEN_PARAM : 'auth_token';
     var ADMIN_PREFIX = APP_URL + '/admin/';
+
+    // Generate or retrieve unique tab ID
+    function getTabId() {
+        var tabId = sessionStorage.getItem(TAB_ID_KEY);
+        if (!tabId) {
+            tabId = 'tab_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            try {
+                sessionStorage.setItem(TAB_ID_KEY, tabId);
+            } catch (e) {}
+        }
+        return tabId;
+    }
 
     function getCookieName() {
         return TOKEN_PARAM;
@@ -37,81 +48,113 @@
         document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=" + path + ";";
     }
 
-    // Capture token if it happens to be in URL (e.g., legacy links) and clean the URL
-    function storeTokenFromUrl() {
+    function getTokenFromUrl() {
         var params = new URLSearchParams(window.location.search);
-        var tokenFromUrl = params.get(TOKEN_PARAM);
-
-        if (tokenFromUrl) {
-            try {
-                sessionStorage.setItem(AUTH_TOKEN_KEY, tokenFromUrl);
-                setCookie(getCookieName(), tokenFromUrl, 8);
-                
-                // Clean URL
-                var url = new URL(window.location.href);
-                url.searchParams.delete(TOKEN_PARAM);
-                window.history.replaceState({}, document.title, url.toString());
-            } catch (e) {}
-            return;
-        }
-
-        var storedToken = sessionStorage.getItem(AUTH_TOKEN_KEY);
-        var cookieToken = getCookie(getCookieName());
-
-        if (storedToken) {
-            if (storedToken !== cookieToken) {
-                // Mismatch! This tab has a different session than the active cookie.
-                // Restore this tab's cookie and reload to get the correct data from PHP.
-                setCookie(getCookieName(), storedToken, 8);
-                window.location.reload();
-            }
-        } else if (cookieToken) {
-            // New tab or fresh session, inherit from cookie
-            try {
-                sessionStorage.setItem(AUTH_TOKEN_KEY, cookieToken);
-            } catch (e) {}
-        }
+        return params.get(TOKEN_PARAM) || null;
     }
 
+    function storeTokenFromUrl() {
+        var token = getTokenFromUrl();
+        if (token) {
+            try {
+                sessionStorage.setItem(AUTH_TOKEN_KEY, token);
+                // Store in cookie as fallback (8 hours = session lifetime)
+                setCookie(getCookieName(), token, 8);
+            } catch (e) {}
+        } else {
+            // On refresh: check sessionStorage first (per-tab), then cookie
+            var storedToken = sessionStorage.getItem(AUTH_TOKEN_KEY);
+            if (storedToken) {
+                // Restore token to URL immediately so PHP can read it
+                var url = new URL(window.location.href);
+                url.searchParams.set(TOKEN_PARAM, storedToken);
+                window.location.replace(url.toString());
+                return;
+            }
+            // Fallback to cookie if sessionStorage is empty
+            var cookieToken = getCookie(getCookieName());
+            if (cookieToken) {
+                try {
+                    sessionStorage.setItem(AUTH_TOKEN_KEY, cookieToken);
+                    var url = new URL(window.location.href);
+                    url.searchParams.set(TOKEN_PARAM, cookieToken);
+                    window.location.replace(url.toString());
+                    return;
+                } catch (e) {}
+            }
+        }
+    }
+    
     function clearAuthCookie() {
         try {
             deleteCookie(getCookieName());
             sessionStorage.removeItem(AUTH_TOKEN_KEY);
         } catch (e) {}
     }
-
-    // Instead of adding token to URLs, we intercept clicks to sync the cookie
+    
+    // Clear cookie on logout links
     document.addEventListener('click', function(e) {
-        var logoutLink = e.target.closest('a[href*="logout"]');
-        if (logoutLink) {
+        var target = e.target.closest('a[href*="logout"]');
+        if (target) {
             clearAuthCookie();
-            return;
-        }
-
-        // For all other links within the app, ensure cookie matches this tab's token before navigating
-        var a = e.target.closest('a');
-        if (a && a.href && (a.href.indexOf(APP_URL) !== -1 || a.href.startsWith(window.location.origin))) {
-            var storedToken = sessionStorage.getItem(AUTH_TOKEN_KEY);
-            if (storedToken) {
-                setCookie(getCookieName(), storedToken, 8);
-            }
-        }
-    }, true);
-
-    // On form submit, ensure cookie is set
-    document.addEventListener('submit', function(e) {
-        var storedToken = sessionStorage.getItem(AUTH_TOKEN_KEY);
-        if (storedToken) {
-            setCookie(getCookieName(), storedToken, 8);
         }
     }, true);
 
     function getToken() {
-        return sessionStorage.getItem(AUTH_TOKEN_KEY) || getCookie(getCookieName());
+        var token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+        if (!token) {
+            // Fallback to cookie for this tab
+            token = getCookie(getCookieName());
+            if (token) {
+                try {
+                    sessionStorage.setItem(AUTH_TOKEN_KEY, token);
+                } catch (e) {}
+            }
+        }
+        return token;
+    }
+
+    function appendTokenToUrl(url) {
+        if (!url || typeof url !== 'string') return url;
+        var token = getToken();
+        if (!token) return url;
+        try {
+            var u = new URL(url, window.location.origin);
+            u.searchParams.set(TOKEN_PARAM, token);
+            return u.pathname + u.search + (u.hash || '');
+        } catch (e) {
+            var sep = url.indexOf('?') !== -1 ? '&' : '?';
+            return url + sep + TOKEN_PARAM + '=' + encodeURIComponent(token);
+        }
+    }
+
+    function addTokenToLinks() {
+        var token = getToken();
+        if (!token) return;
+
+        var links = document.querySelectorAll('a[href^="' + ADMIN_PREFIX + '"], a[href^="/' + ADMIN_PREFIX.replace(/^\//, '') + '"]');
+        links.forEach(function(a) {
+            var href = a.getAttribute('href');
+            if (href && href.indexOf(TOKEN_PARAM + '=') === -1) {
+                a.setAttribute('href', appendTokenToUrl(href));
+            }
+        });
+
+        var forms = document.querySelectorAll('form');
+        forms.forEach(function(form) {
+            if (form.querySelector('input[name="' + TOKEN_PARAM + '"]')) return;
+            var action = form.getAttribute('action') || window.location.href;
+            if (action.indexOf(ADMIN_PREFIX) !== -1 || action.indexOf('/admin/') !== -1 || !form.action) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = TOKEN_PARAM;
+                input.value = token;
+                form.appendChild(input);
+            }
+        });
     }
 
     function buildApiUrl(url) {
-        // Keep adding to API URLs if needed by XHR/fetch, but generally rely on cookie
         var token = getToken();
         if (!token) return url;
         try {
@@ -125,8 +168,16 @@
     }
 
     function buildPageUrl(pathOrUrl) {
-        // We no longer append token to page URLs!
-        return pathOrUrl;
+        var token = getToken();
+        if (!token) return pathOrUrl;
+        try {
+            var u = new URL(pathOrUrl, window.location.origin);
+            u.searchParams.set(TOKEN_PARAM, token);
+            return u.toString();
+        } catch (e) {
+            var sep = pathOrUrl.indexOf('?') !== -1 ? '&' : '?';
+            return pathOrUrl + sep + TOKEN_PARAM + '=' + encodeURIComponent(token);
+        }
     }
 
     window.SDO_BACTRACK_buildApiUrl = buildApiUrl;
@@ -135,6 +186,21 @@
 
     function init() {
         storeTokenFromUrl();
+        addTokenToLinks();
+
+        document.addEventListener('submit', function(e) {
+            var form = e.target;
+            if (form.tagName === 'FORM' && !form.querySelector('input[name="' + TOKEN_PARAM + '"]')) {
+                var token = getToken();
+                if (token) {
+                    var input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = TOKEN_PARAM;
+                    input.value = token;
+                    form.appendChild(input);
+                }
+            }
+        }, true);
     }
 
     if (document.readyState === 'loading') {

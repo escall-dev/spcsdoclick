@@ -33,9 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // and set a tab-specific cookie for refresh support
             $redirect = $_SESSION['redirect_after_login'] ?? APP_URL . '/admin/';
             unset($_SESSION['redirect_after_login']);
-            // Strip any stale auth_token params from redirect URL
+            // Strip any stale auth_token params from redirect URL before appending the new one
             $redirect = preg_replace('/([?&])' . preg_quote(AUTH_TOKEN_PARAM, '/') . '=[^&]*(&|$)/', '$1', $redirect);
             $redirect = rtrim($redirect, '?&');
+            $sep = strpos($redirect, '?') !== false ? '&' : '?';
+            $redirect .= $sep . AUTH_TOKEN_PARAM . '=' . urlencode($token);
             header('Location: ' . $redirect);
             exit;
         } else {
@@ -239,6 +241,12 @@ function landingAnnouncementLinkLabel($linkHref) {
         }
         .header-spacer {
             flex: 1 1 0;
+        }
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-shrink: 0;
         }
         .header-logo-wrap {
             width: 64px; height: 64px;
@@ -531,6 +539,52 @@ function landingAnnouncementLinkLabel($linkHref) {
             flex-wrap: wrap;
             gap: 10px;
             margin-bottom: 16px;
+        }
+
+        .mobile-landing-tabs {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .mobile-landing-tab {
+            border: 1px solid rgba(15, 76, 117, 0.2);
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--primary-dark);
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-family: inherit;
+            font-size: 0.78rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            flex: 1 1 0;
+            justify-content: center;
+            min-width: 0;
+            line-height: 1.1;
+            text-align: center;
+            white-space: normal;
+        }
+        .mobile-landing-tab i {
+            font-size: 0.72rem;
+        }
+        .mobile-landing-tab.announcements-tab {
+            font-size: 0.74rem;
+        }
+
+        .mobile-landing-tab.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.36);
+            box-shadow: 0 10px 22px rgba(15, 76, 117, 0.35);
         }
 
         .home-content-tab {
@@ -1939,9 +1993,14 @@ function landingAnnouncementLinkLabel($linkHref) {
 
         /* ─── Responsive ─── */
         @media (max-width: 600px) {
+            body {
+                background-attachment: scroll;
+                background-position: center top;
+            }
             .search-row { flex-direction: column; }
             .btn-search { width: 100%; justify-content: center; }
             .estimator-controls-row {
+                flex-direction: column;
                 align-items: stretch;
             }
             .estimator-controls-row .search-input,
@@ -1950,11 +2009,39 @@ function landingAnnouncementLinkLabel($linkHref) {
                 max-width: 100%;
                 width: 100%;
             }
+            .estimator-card .card-body {
+                overflow-x: auto;
+            }
+            .estimator-card table {
+                min-width: 520px;
+            }
             .header-flag { display: none; }
             .footer-right { text-align: left; }
             .dark-modal-body { padding: 28px 20px 22px; }
             .dark-modal.bac-modal .dark-modal-body { padding: 18px 14px 14px; }
-            .bac-process-table { font-size: 0.8rem; }
+            .bac-process-table { font-size: 0.7rem; }
+            .bac-process-table th,
+            .bac-process-table td {
+                padding: 4px 5px;
+                font-size: 0.7rem;
+            }
+            .bac-process-table th {
+                font-size: 0.68rem;
+                white-space: normal;
+                overflow-wrap: anywhere;
+                text-align: center;
+            }
+            .bac-process-table td:nth-child(1),
+            .bac-process-table td:nth-child(3),
+            .bac-process-table td:nth-child(4),
+            .bac-process-table td:nth-child(5) {
+                text-align: center;
+            }
+            .bac-status {
+                padding: 1px 5px;
+                font-size: 0.6rem;
+                letter-spacing: 0.02em;
+            }
             .landing-bac-contact-grid {
                 grid-template-columns: 1fr;
             }
@@ -1967,11 +2054,37 @@ function landingAnnouncementLinkLabel($linkHref) {
                 min-width: 0;
                 justify-content: center;
             }
+            .landing-announcements-btn {
+                width: 32px;
+                height: 32px;
+            }
+            .landing-announcements-inner {
+                padding: 14px 14px 12px;
+            }
         }
 
         @media (max-width: 800px) {
             /* On smaller screens, restore normal flow for header elements */
             .site-header { position: relative; }
+            .header-inner {
+                height: auto;
+                padding: 16px 18px;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+            .header-brand {
+                width: 100%;
+                justify-content: center;
+            }
+            .header-spacer {
+                display: none;
+            }
+            .header-text-group h1 {
+                font-size: 1.25rem;
+            }
+            .header-text-group p {
+                font-size: 0.72rem;
+            }
             .navbar-links {
                 position: static;
                 transform: none;
@@ -1982,6 +2095,14 @@ function landingAnnouncementLinkLabel($linkHref) {
                 margin: 8px 0 0 0;
                 overflow-x: auto;
                 white-space: nowrap;
+                flex-wrap: nowrap;
+                -webkit-overflow-scrolling: touch;
+                scroll-padding: 8px;
+            }
+            .nav-link {
+                height: 34px;
+                padding: 0 10px;
+                font-size: 0.82rem;
             }
             .btn-login {
                 position: static;
@@ -1989,8 +2110,23 @@ function landingAnnouncementLinkLabel($linkHref) {
                 top: auto;
                 transform: none;
                 margin-left: 0;
+                width: 100%;
+                justify-content: center;
             }
-            .header-inner { height: auto; padding: 16px 18px; flex-wrap: wrap; }
+            .main-content {
+                padding-top: 124px;
+            }
+            .mobile-landing-tabs {
+                display: flex;
+                flex-wrap: wrap;
+                overflow: visible;
+                white-space: normal;
+                justify-content: center;
+                padding: 2px 0 4px;
+            }
+            .home-content-tabs {
+                display: none;
+            }
         }
 
         @media (max-width: 1100px) {
@@ -2019,6 +2155,13 @@ function landingAnnouncementLinkLabel($linkHref) {
         }
 
         @media (max-width: 600px) {
+            .card-header {
+                padding: 10px 14px;
+                font-size: 0.78rem;
+            }
+            .card-body {
+                padding: 14px;
+            }
             .landing-home-hub {
                 padding: 12px;
             }
@@ -2031,16 +2174,137 @@ function landingAnnouncementLinkLabel($linkHref) {
                 padding: 8px 12px;
                 font-size: 0.82rem;
             }
+            .mobile-landing-tab {
+                padding: 5px 8px;
+                font-size: 0.72rem;
+                gap: 3px;
+            }
+            .mobile-landing-tab i {
+                font-size: 0.68rem;
+            }
+            .mobile-landing-tab.announcements-tab {
+                font-size: 0.68rem;
+            }
 
             .landing-announcements-slide {
                 padding: 14px 38px 6px;
             }
-        }
-        
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
+            .ann-title {
+                font-size: 0.9rem;
+            }
+            .ann-desc {
+                font-size: 0.82rem;
+            }
+            .ann-link {
+                font-size: 0.78rem;
+            }
+            .ann-date {
+                font-size: 0.75rem;
+            }
+            .estimator-controls {
+                gap: 6px;
+            }
+            .estimator-control-label {
+                font-size: 0.78rem;
+            }
+            .estimator-card .search-input {
+                padding: 8px 10px;
+                font-size: 0.84rem;
+            }
+            .estimator-card .btn-search {
+                padding: 8px 10px;
+                font-size: 0.8rem;
+            }
+            .estimator-card .card-body {
+                overflow-x: visible;
+            }
+            .estimator-card table {
+                width: 100%;
+                min-width: 0;
+                table-layout: fixed;
+            }
+            .estimator-card table th,
+            .estimator-card table td {
+                padding: 3px 4px;
+                font-size: 0.7rem;
+                line-height: 1.15;
+                word-break: break-word;
+                overflow-wrap: anywhere;
+            }
+            .estimator-card table th:nth-child(1),
+            .estimator-card table td:nth-child(1) {
+                width: 50%;
+                white-space: normal;
+            }
+            .estimator-card table th:nth-child(2),
+            .estimator-card table td:nth-child(2),
+            .estimator-card table th:nth-child(3),
+            .estimator-card table td:nth-child(3) {
+                width: 25%;
+                white-space: nowrap;
+                text-align: center;
+            }
+            .projects-card .projects-table {
+                width: 100%;
+                min-width: 0;
+                border-collapse: separate;
+                border-spacing: 0;
+            }
+            .projects-card .projects-table thead {
+                display: none;
+            }
+            .projects-card .projects-table,
+            .projects-card .projects-table tbody,
+            .projects-card .projects-table tr,
+            .projects-card .projects-table td {
+                display: block;
+                width: 100%;
+            }
+            .projects-card .projects-table tr {
+                background: rgba(255, 255, 255, 0.98);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                padding: 10px 12px;
+                margin-bottom: 10px;
+                box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+            }
+            .projects-card .projects-table td {
+                border: none;
+                padding: 4px 0;
+                font-size: 0.78rem;
+                display: flex;
+                justify-content: space-between;
+                gap: 10px;
+                align-items: baseline;
+            }
+            .projects-card .projects-table td::before {
+                font-size: 0.68rem;
+                font-weight: 700;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                flex: 0 0 44%;
+            }
+            .projects-card .projects-table td:nth-child(1)::before { content: 'Tracking'; }
+            .projects-card .projects-table td:nth-child(2)::before { content: 'Title'; }
+            .projects-card .projects-table td:nth-child(3)::before { content: 'Procurement'; }
+            .projects-card .projects-table td:nth-child(4)::before { content: 'Implementation'; }
+            .projects-card .projects-table td:nth-child(5)::before { content: 'Proponent'; }
+            .projects-card .projects-table td:nth-child(6)::before { content: 'Status'; }
+            .projects-card .card-body {
+                padding: 8px 10px;
+            }
+            .header-logo-wrap {
+                width: 52px;
+                height: 52px;
+            }
+            .main-content {
+                padding-top: 116px;
+            }
+            .nav-dropdown-menu {
+                min-width: 200px;
+                max-width: 92vw;
+            }
         }
     </style>
 </head>
@@ -2050,12 +2314,14 @@ function landingAnnouncementLinkLabel($linkHref) {
 
     <header class="site-header">
         <div class="header-inner">
-            <div class="header-logo-wrap">
-                <img src="/BACTrack/sdo-template/logo-imgs/sdo-logo.jpg" alt="SDO Logo">
-            </div>
-            <div class="header-text-group">
-                <h1><?php echo APP_NAME; ?></h1>
-                <p><?php echo APP_SUBTITLE; ?></p>
+            <div class="header-brand">
+                <div class="header-logo-wrap">
+                    <img src="/SDO-BACtrack/sdo-template/logo-imgs/sdo-logo.jpg" alt="SDO Logo">
+                </div>
+                <div class="header-text-group">
+                    <h1><?php echo APP_NAME; ?></h1>
+                    <p><?php echo APP_SUBTITLE; ?></p>
+                </div>
             </div>
             <div class="header-spacer"></div>
             <div class="navbar-links">
@@ -2090,6 +2356,41 @@ function landingAnnouncementLinkLabel($linkHref) {
         <div class="content-wrap">
             <section id="landing-home-panel" class="landing-tab-panel active" role="tabpanel" aria-labelledby="landing-home-tab">
                 <div class="landing-home-hub">
+                    <div class="mobile-landing-tabs" role="tablist" aria-label="Mobile landing sections">
+                        <button
+                            type="button"
+                            id="mobile-landing-estimator-tab"
+                            class="mobile-landing-tab active"
+                            onclick="switchLandingMobileTab('estimator')"
+                            role="tab"
+                            aria-selected="true"
+                            aria-controls="home-content-estimator-panel"
+                        >
+                            <i class="fas fa-table" aria-hidden="true"></i>
+                        </button>
+                        <button
+                            type="button"
+                            id="mobile-landing-announcements-tab"
+                            class="mobile-landing-tab announcements-tab"
+                            onclick="switchLandingMobileTab('announcements')"
+                            role="tab"
+                            aria-selected="false"
+                            aria-controls="home-content-announcements-panel"
+                        >
+                            <i class="fas fa-bullhorn" aria-hidden="true"></i>
+                        </button>
+                        <button
+                            type="button"
+                            id="mobile-landing-projects-tab"
+                            class="mobile-landing-tab"
+                            onclick="switchLandingMobileTab('projects')"
+                            role="tab"
+                            aria-selected="false"
+                            aria-controls="home-content-projects-panel"
+                        >
+                            <i class="fas fa-folder-open" aria-hidden="true"></i>
+                        </button>
+                    </div>
                     <div class="home-content-tabs" role="tablist" aria-label="Homepage content sections">
                         <button
                             type="button"
@@ -2260,20 +2561,18 @@ function landingAnnouncementLinkLabel($linkHref) {
                                     </ol>
                                 </div>
 
-                                <div class="table-responsive">
-                                    <table style="width:100%;border-collapse:collapse;min-width:600px;">
-                                        <thead>
-                                            <tr style="background:var(--bg-secondary);">
-                                                <th style="padding:5px 6px;border:1px solid var(--border-color);width:46%;text-align:left;">Procurement Stage</th>
-                                                <th style="padding:5px 6px;border:1px solid var(--border-color);width:27%;">Start Date</th>
-                                                <th style="padding:5px 6px;border:1px solid var(--border-color);width:27%;">End Date</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="plannerBody">
-                                            <!-- rows injected by JS -->
-                                        </tbody>
-                                    </table>
-                                </div>
+                                <table style="width:100%;border-collapse:collapse;">
+                                    <thead>
+                                        <tr style="background:var(--bg-secondary);">
+                                            <th style="padding:5px 6px;border:1px solid var(--border-color);width:46%;text-align:left;">Procurement Stage</th>
+                                            <th style="padding:5px 6px;border:1px solid var(--border-color);width:27%;">Start Date</th>
+                                            <th style="padding:5px 6px;border:1px solid var(--border-color);width:27%;">End Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="plannerBody">
+                                        <!-- rows injected by JS -->
+                                    </tbody>
+                                </table>
 
                                 <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;justify-content:flex-end;">
                                     <label style="font-weight:800;color:var(--text-secondary);font-size:0.84rem;">Latest Allowable Implementation Date:</label>
@@ -2589,7 +2888,7 @@ function landingAnnouncementLinkLabel($linkHref) {
             </button>
             <div class="dark-modal-body">
                 <div class="dark-modal-header">
-                    <img src="/BACTrack/sdo-template/logo-imgs/sdo-logo.jpg" alt="SDO Logo" class="dark-modal-logo">
+                    <img src="/SDO-BACtrack/sdo-template/logo-imgs/sdo-logo.jpg" alt="SDO Logo" class="dark-modal-logo">
                     <h2><?php echo APP_NAME; ?></h2>
                     <p><?php echo APP_SUBTITLE; ?></p>
                 </div>
@@ -2692,6 +2991,8 @@ function landingAnnouncementLinkLabel($linkHref) {
                     panelEl.setAttribute('aria-hidden', isActive ? 'false' : 'true');
                 }
             });
+
+            syncMobileLandingTabs('home');
         }
 
         function switchLandingTab(tab) {
@@ -2730,9 +3031,61 @@ function landingAnnouncementLinkLabel($linkHref) {
                 contactPanel.setAttribute('aria-hidden', showContact ? 'false' : 'true');
             }
 
+            syncMobileLandingTabs(activeTab);
+
             if (showCalendar && !landingCalendarLoaded && !landingCalendarLoading) {
                 loadLandingCalendarWidget();
             }
+        }
+
+        function syncMobileLandingTabs(activeTab) {
+            const estimatorTab = document.getElementById('mobile-landing-estimator-tab');
+            const announcementsTab = document.getElementById('mobile-landing-announcements-tab');
+            const projectsTab = document.getElementById('mobile-landing-projects-tab');
+
+            if (activeTab !== 'calendar') {
+                const estimatorActive = document.getElementById('home-content-estimator-tab')?.classList.contains('active');
+                const announcementsActive = document.getElementById('home-content-announcements-tab')?.classList.contains('active');
+                const projectsActive = document.getElementById('home-content-projects-tab')?.classList.contains('active');
+
+                if (estimatorTab) {
+                    estimatorTab.classList.toggle('active', !!estimatorActive);
+                    estimatorTab.setAttribute('aria-selected', estimatorActive ? 'true' : 'false');
+                }
+                if (announcementsTab) {
+                    announcementsTab.classList.toggle('active', !!announcementsActive);
+                    announcementsTab.setAttribute('aria-selected', announcementsActive ? 'true' : 'false');
+                }
+                if (projectsTab) {
+                    projectsTab.classList.toggle('active', !!projectsActive);
+                    projectsTab.setAttribute('aria-selected', projectsActive ? 'true' : 'false');
+                }
+            } else {
+                if (estimatorTab) {
+                    estimatorTab.classList.remove('active');
+                    estimatorTab.setAttribute('aria-selected', 'false');
+                }
+                if (announcementsTab) {
+                    announcementsTab.classList.remove('active');
+                    announcementsTab.setAttribute('aria-selected', 'false');
+                }
+                if (projectsTab) {
+                    projectsTab.classList.remove('active');
+                    projectsTab.setAttribute('aria-selected', 'false');
+                }
+            }
+        }
+
+        function switchLandingMobileTab(tab) {
+            switchLandingTab('home');
+            if (tab === 'announcements') {
+                switchHomeContentTab('announcements');
+            } else if (tab === 'projects') {
+                switchHomeContentTab('projects');
+            } else {
+                switchHomeContentTab('estimator');
+            }
+            syncMobileLandingTabs('home');
         }
 
         function loadLandingCalendarWidget() {

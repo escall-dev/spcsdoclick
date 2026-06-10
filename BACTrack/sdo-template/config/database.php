@@ -6,16 +6,14 @@
 
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'sdo_cts');
-define('DB_USER', 'pedro');
-define('DB_PASS', 'Deped@1234');
+define('DB_USER', 'root');
+define('DB_PASS', '');
 
-class Database
-{
+class Database {
     private static $instance = null;
     private $connection;
 
-    private function __construct()
-    {
+    private function __construct() {
         try {
             $this->connection = new PDO(
                 "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
@@ -24,8 +22,7 @@ class Database
                 [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES => false,
-                    PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true
+                    PDO::ATTR_EMULATE_PREPARES => false
                 ]
             );
         } catch (PDOException $e) {
@@ -33,44 +30,24 @@ class Database
         }
     }
 
-    public static function getInstance()
-    {
+    public static function getInstance() {
         if (self::$instance === null) {
             self::$instance = new self();
         }
         return self::$instance;
     }
 
-    public function getConnection()
-    {
+    public function getConnection() {
         return $this->connection;
     }
 
-    public function query($sql, $params = [])
-    {
+    public function query($sql, $params = []) {
         $stmt = $this->connection->prepare($sql);
         $stmt->execute($params);
         return $stmt;
     }
 
-    public function fetch($sql, $params = [])
-    {
-        $stmt = $this->query($sql, $params);
-        $result = $stmt->fetch();
-        $stmt->closeCursor();
-        return $result;
-    }
-
-    public function fetchAll($sql, $params = [])
-    {
-        $stmt = $this->query($sql, $params);
-        $result = $stmt->fetchAll();
-        $stmt->closeCursor();
-        return $result;
-    }
-
-    public function lastInsertId()
-    {
+    public function lastInsertId() {
         return $this->connection->lastInsertId();
     }
 }

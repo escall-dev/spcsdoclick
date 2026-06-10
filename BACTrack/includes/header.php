@@ -40,6 +40,7 @@ $pageTitles = [
     'analytics' => 'Analytics',
     'reports' => 'Reports',
     'report-print' => 'Print Report',
+    'integrations' => 'Integrations',
     'contact' => 'Need Help?',
     'users' => 'User Management',
     'profile' => 'My Profile'
@@ -81,7 +82,7 @@ $pageTitle = $pageTitles[$currentPage] ?? 'Announcements';
                 <div class="logo">
                     <div class="logo-icon-wrapper">
                         <div class="logo-badge">
-                            <img src="/BACTrack/sdo-template/logo-imgs/sdo-logo.jpg" alt="SDO San Pedro Logo">
+                            <img src="/SDO-BACtrack/sdo-template/logo-imgs/sdo-logo.jpg" alt="SDO San Pedro Logo">
                         </div>
                     </div>
                     <div class="logo-text">
@@ -107,6 +108,11 @@ $pageTitle = $pageTitles[$currentPage] ?? 'Announcements';
                 <a href="<?php echo APP_URL; ?>/admin/projects.php" class="nav-item <?php echo in_array($currentPage, ['projects', 'project-view', 'project-create']) ? 'active' : ''; ?>" data-tooltip="Projects">
                     <span class="nav-icon"><i class="fas fa-folder-open"></i></span>
                     <span class="nav-text">Projects</span>
+                </a>
+                
+                <a href="<?php echo APP_URL; ?>/admin/integrations.php" class="nav-item <?php echo $currentPage === 'integrations' ? 'active' : ''; ?>" data-tooltip="Integrations">
+                    <span class="nav-icon"><i class="fas fa-network-wired"></i></span>
+                    <span class="nav-text">Integrations</span>
                 </a>
                 
                 <a href="<?php echo APP_URL; ?>/admin/activities.php" class="nav-item <?php echo in_array($currentPage, ['activities', 'activity-view']) ? 'active' : ''; ?>" data-tooltip="Process">
@@ -178,9 +184,6 @@ $pageTitle = $pageTitles[$currentPage] ?? 'Announcements';
                 </a>
             </div>
         </aside>
-
-        <!-- Sidebar Backdrop for Mobile -->
-        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
         <!-- Main Content -->
         <main class="main-content">

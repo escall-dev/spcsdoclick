@@ -8,18 +8,16 @@ require_once __DIR__ . '/env.php';
 
 define('DB_HOST', app_env_get('DB_HOST', 'localhost'));
 define('DB_PORT', app_env_get_int('DB_PORT', 3306));
-define('DB_NAME', app_env_get('BAC_DB_NAME', 'u813957308_sdo_bac'));
-define('DB_USER', app_env_get('BAC_DB_USER', 'u813957308_BACsdospc'));
-define('DB_PASS', app_env_get('BAC_DB_PASS', ''));
+define('DB_NAME', app_env_get('DB_NAME', 'sdo_bac'));
+define('DB_USER', app_env_get('DB_USER', 'root'));
+define('DB_PASS', app_env_get('DB_PASS', ''));
 define('DB_CHARSET', app_env_get('DB_CHARSET', 'utf8mb4'));
 
-class Database
-{
+class Database {
     private static $instance = null;
     private $connection;
 
-    private function __construct()
-    {
+    private function __construct() {
         try {
             $dsn = 'mysql:host=' . DB_HOST;
             if (DB_PORT > 0) {
@@ -34,8 +32,7 @@ class Database
                 [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES => false,
-                    PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true
+                    PDO::ATTR_EMULATE_PREPARES => false
                 ]
             );
 
@@ -46,8 +43,7 @@ class Database
         }
     }
 
-    private function runPendingMigrations()
-    {
+    private function runPendingMigrations() {
         $this->connection->exec(
             "CREATE TABLE IF NOT EXISTS schema_migrations (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -56,9 +52,9 @@ class Database
             ) ENGINE=InnoDB"
         );
 
-        $stmt = $this->connection->query("SELECT filename FROM schema_migrations");
-        $appliedRows = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        $stmt->closeCursor();
+        $appliedRows = $this->connection
+            ->query("SELECT filename FROM schema_migrations")
+            ->fetchAll(PDO::FETCH_COLUMN);
         $applied = array_fill_keys($appliedRows ?: [], true);
 
         $updatesDir = dirname(__DIR__) . '/database/updates';
@@ -92,17 +88,13 @@ class Database
                     if ($trimmed === '') {
                         continue;
                     }
-                    $stmt = $this->connection->query($trimmed);
-                    if ($stmt !== false) {
-                        $stmt->closeCursor();
-                    }
+                    $this->connection->exec($trimmed);
                 }
 
                 $insert = $this->connection->prepare(
                     "INSERT INTO schema_migrations (filename) VALUES (?)"
                 );
                 $insert->execute([$filename]);
-                $insert->closeCursor();
             } catch (Throwable $e) {
                 // Some deployments already applied old updates manually.
                 // If we hit an "already exists"-type error, mark file as applied and continue.
@@ -111,7 +103,6 @@ class Database
                         "INSERT IGNORE INTO schema_migrations (filename) VALUES (?)"
                     );
                     $insert->execute([$filename]);
-                    $insert->closeCursor();
                     continue;
                 }
 
@@ -120,8 +111,7 @@ class Database
         }
     }
 
-    private function isIgnorableMigrationError($exception)
-    {
+    private function isIgnorableMigrationError($exception) {
         $message = strtolower($exception->getMessage());
         $patterns = [
             'duplicate column',
@@ -141,8 +131,7 @@ class Database
         return false;
     }
 
-    private function splitSqlStatements($sql)
-    {
+    private function splitSqlStatements($sql) {
         $statements = [];
         $buffer = '';
         $inSingleQuote = false;
@@ -206,65 +195,49 @@ class Database
         return $statements;
     }
 
-    public static function getInstance()
-    {
+    public static function getInstance() {
         if (self::$instance === null) {
             self::$instance = new self();
         }
         return self::$instance;
     }
 
-    public function getConnection()
-    {
+    public function getConnection() {
         return $this->connection;
     }
 
-    public function query($sql, $params = [])
-    {
+    public function query($sql, $params = []) {
         $stmt = $this->connection->prepare($sql);
         $stmt->execute($params);
         return $stmt;
     }
 
-    public function fetch($sql, $params = [])
-    {
-        $stmt = $this->query($sql, $params);
-        $result = $stmt->fetch();
-        $stmt->closeCursor();
-        return $result;
+    public function fetch($sql, $params = []) {
+        return $this->query($sql, $params)->fetch();
     }
 
-    public function fetchAll($sql, $params = [])
-    {
-        $stmt = $this->query($sql, $params);
-        $result = $stmt->fetchAll();
-        $stmt->closeCursor();
-        return $result;
+    public function fetchAll($sql, $params = []) {
+        return $this->query($sql, $params)->fetchAll();
     }
 
-    public function lastInsertId()
-    {
+    public function lastInsertId() {
         return $this->connection->lastInsertId();
     }
 
-    public function beginTransaction()
-    {
+    public function beginTransaction() {
         return $this->connection->beginTransaction();
     }
 
-    public function commit()
-    {
+    public function commit() {
         return $this->connection->commit();
     }
 
-    public function rollback()
-    {
+    public function rollback() {
         return $this->connection->rollBack();
     }
 }
 
 // Helper function to get database instance
-function db()
-{
+function db() {
     return Database::getInstance();
 }

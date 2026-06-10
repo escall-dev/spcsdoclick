@@ -8,7 +8,7 @@ require_once __DIR__ . '/../includes/header.php';
 require_once __DIR__ . '/../models/Project.php';
 
 $isBacSecretaryView = isset($auth) && ($auth->isBacSecretary() || $auth->isSuperAdmin());
-$clientSatisfactionSurveyUrl = 'https://wfh-sdospc.com/csm-online/csm.php';
+$clientSatisfactionSurveyUrl = 'https://wfh-sdospc.com/csm/csm.php';
 $projects = [];
 if (!$isBacSecretaryView) {
     $projectModel = new Project();

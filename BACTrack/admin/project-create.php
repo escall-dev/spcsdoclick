@@ -144,6 +144,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $db->commit();
 
+            // FAST sync on creation removed because a manual file upload is now required for integration.
+
             $msg = 'Project created successfully with timeline generated.';
             setFlashMessage('success', $msg);
             $auth->redirect(APP_URL . '/admin/project-view.php?id=' . $projectId);

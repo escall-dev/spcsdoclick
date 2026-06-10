@@ -25,7 +25,202 @@ $project = $projectModel->findById($projectId);
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'approve_project' && $auth->isBacSecretary() && $projectId) {
     if ($project && ($project['approval_status'] ?? 'APPROVED') === 'PENDING_APPROVAL') {
         $projectModel->approve($projectId);
-        setFlashMessage('success', 'Project approved. Progress can now be tracked.');
+        setFlashMessage('success', 'Project approved locally. You can now upload the approval document to synchronize it to SDO FAST.');
+    }
+    $auth->redirect(APP_URL . '/admin/project-view.php?id=' . $projectId);
+}
+
+// Handle submit to SDO FAST with procurement approval file upload
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submit_to_fast' && ($auth->isBacSecretary() || $auth->isSuperAdmin()) && $projectId) {
+    if ($project && ($project['approval_status'] ?? '') === 'APPROVED') {
+        // Verify if Purchase Request document is uploaded
+        $hasPR = false;
+        try {
+            $stmtPr = db()->query("SELECT COUNT(*) FROM project_documents WHERE project_id = ? AND (category = 'Purchase Request' OR category = 'purchase_request')", [$projectId]);
+            $hasPR = ((int)$stmtPr->fetchColumn() > 0);
+        } catch (Exception $e) {
+            error_log("Failed to check PR upload: " . $e->getMessage());
+        }
+
+        if (!$hasPR) {
+            setFlashMessage('error', 'Purchase Request document is required before sending.');
+        } else {
+            $hasNewFile = isset($_FILES['approval_file']) && $_FILES['approval_file']['error'] !== UPLOAD_ERR_NO_FILE;
+            $existingFilePath = $project['approval_file_path'] ?? '';
+            
+            try {
+                $filePath = '';
+                $originalFilename = '';
+
+                if ($hasNewFile) {
+                    $file = $_FILES['approval_file'];
+                    if ($file['error'] !== UPLOAD_ERR_OK) {
+                        throw new Exception('File upload failed with error code: ' . $file['error']);
+                    }
+                    
+                    $maxSize = 5 * 1024 * 1024; // 5MB
+                    if ($file['size'] > $maxSize) {
+                        throw new Exception('File size exceeds maximum allowed (5MB).');
+                    }
+                    
+                    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                    $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+                    if (!in_array($extension, $allowedExtensions, true)) {
+                        throw new Exception('Only PDF, JPG, and PNG files are allowed.');
+                    }
+                    
+                    // Create upload directory
+                    $uploadDir = UPLOAD_DIR . 'bac-approvals/';
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0755, true);
+                    }
+                    
+                    $prNumber = 'PR-' . str_pad((string)$projectId, 4, '0', STR_PAD_LEFT);
+                    $filename = 'approval_' . uniqid() . '_' . $prNumber . '.' . $extension;
+                    $filePath = 'bac-approvals/' . $filename;
+                    $fullPath = $uploadDir . $filename;
+                    
+                    if (!move_uploaded_file($file['tmp_name'], $fullPath)) {
+                        throw new Exception('Failed to save uploaded file on server.');
+                    }
+                    
+                    // Save to database
+                    db()->query("UPDATE projects SET approval_file_path = ? WHERE id = ?", [$filePath, $projectId]);
+                    $originalFilename = $file['name'];
+                } elseif (!empty($existingFilePath)) {
+                    $filePath = $existingFilePath;
+                    $originalFilename = basename($existingFilePath);
+                } else {
+                    // Fallback: Check if Purchase Request checklist document exists
+                    $stmtPrDoc = db()->query("SELECT file_path, original_name FROM project_documents WHERE project_id = ? AND (category = 'Purchase Request' OR category = 'purchase_request') LIMIT 1", [$projectId]);
+                    $prDoc = $stmtPrDoc->fetch();
+                    if ($prDoc) {
+                        $filePath = $prDoc['file_path'];
+                        $originalFilename = $prDoc['original_name'];
+                        db()->query("UPDATE projects SET approval_file_path = ? WHERE id = ?", [$filePath, $projectId]);
+                    } else {
+                        throw new Exception('Approval document is required.');
+                    }
+                }
+                
+                // Re-fetch project to ensure we pass the updated row to syncProjectToFast
+                $project = $projectModel->findById($projectId);
+
+                // Mark as submitted to FAST (PENDING). FAST will pull and accept/reject.
+                try {
+                    db()->query(
+                        "UPDATE projects SET fast_sync_status = 'PENDING', fast_synced_at = NULL WHERE id = ?",
+                        [$projectId]
+                    );
+                    setFlashMessage('success', 'Project submitted to SDO FAST. Awaiting acceptance.');
+                } catch (Exception $e) {
+                    setFlashMessage('error', 'Failed to mark submission to SDO FAST: ' . $e->getMessage());
+                }
+            } catch (Exception $e) {
+                setFlashMessage('error', $e->getMessage());
+            }
+        }
+    }
+    $auth->redirect(APP_URL . '/admin/project-view.php?id=' . $projectId);
+}
+
+// Handle procurement checklist file upload
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'upload_checklist_file' && $projectId) {
+    $categorySlug = trim($_POST['category_slug'] ?? '');
+    $validCategories = ['purchase_request', 'memorandum', 'activity_proposal', 'saro'];
+    
+    if (in_array($categorySlug, $validCategories, true)) {
+        if (isset($_FILES['checklist_file']) && $_FILES['checklist_file']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $file = $_FILES['checklist_file'];
+            if ($file['error'] !== UPLOAD_ERR_OK) {
+                setFlashMessage('error', 'File upload failed with error code: ' . $file['error']);
+            } else {
+                $maxSize = 5 * 1024 * 1024; // 5MB
+                if ($file['size'] > $maxSize) {
+                    setFlashMessage('error', 'File size exceeds maximum allowed (5MB).');
+                } else {
+                    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                    $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+                    if (!in_array($extension, $allowedExtensions, true)) {
+                        setFlashMessage('error', 'Only PDF, JPG, and PNG files are allowed.');
+                    } else {
+                        // Create upload directory
+                        $uploadDir = UPLOAD_DIR . 'procurement-docs/';
+                        if (!is_dir($uploadDir)) {
+                            mkdir($uploadDir, 0755, true);
+                        }
+                        
+                        // Generate filename: {$projectId}_{$category_slug}_{$timestamp}.{$ext}
+                        $timestamp = time();
+                        $filename = "{$projectId}_{$categorySlug}_{$timestamp}.{$extension}";
+                        $filePath = 'procurement-docs/' . $filename;
+                        $fullPath = $uploadDir . $filename;
+                        
+                        try {
+                            $existing = db()->fetch(
+                                "SELECT id, file_path FROM project_documents WHERE project_id = ? AND category = ?",
+                                [$projectId, $categorySlug]
+                            );
+                            
+                            if (move_uploaded_file($file['tmp_name'], $fullPath)) {
+                                if ($existing) {
+                                    $oldFullPath = UPLOAD_DIR . $existing['file_path'];
+                                    if (file_exists($oldFullPath)) {
+                                        @unlink($oldFullPath);
+                                    }
+                                    db()->query(
+                                        "UPDATE project_documents 
+                                         SET file_path = ?, original_name = ?, file_size = ?, uploaded_by = ?, uploaded_at = NOW() 
+                                         WHERE id = ?",
+                                        [$filePath, $file['name'], $file['size'], $auth->getUserId(), $existing['id']]
+                                    );
+                                } else {
+                                    db()->query(
+                                        "INSERT INTO project_documents (project_id, category, file_path, original_name, file_size, uploaded_by, uploaded_at) 
+                                         VALUES (?, ?, ?, ?, ?, ?, NOW())",
+                                        [$projectId, $categorySlug, $filePath, $file['name'], $file['size'], $auth->getUserId()]
+                                    );
+                                }
+                                setFlashMessage('success', 'Document uploaded and checklist updated.');
+                            } else {
+                                setFlashMessage('error', 'Failed to save uploaded file.');
+                            }
+                        } catch (Exception $e) {
+                            setFlashMessage('error', 'Database error: ' . $e->getMessage());
+                        }
+                    }
+                }
+            }
+        } else {
+            setFlashMessage('error', 'Please select a file.');
+        }
+    } else {
+        setFlashMessage('error', 'Invalid checklist category.');
+    }
+    $auth->redirect(APP_URL . '/admin/project-view.php?id=' . $projectId);
+}
+
+// Handle procurement checklist file delete
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_checklist_file' && $projectId) {
+    $categorySlug = trim($_POST['category_slug'] ?? '');
+    $validCategories = ['purchase_request', 'memorandum', 'activity_proposal', 'saro'];
+    if (in_array($categorySlug, $validCategories, true)) {
+        try {
+            $existing = db()->fetch(
+                "SELECT id, file_path FROM project_documents WHERE project_id = ? AND category = ?",
+                [$projectId, $categorySlug]
+            );
+            if ($existing) {
+                $oldFullPath = UPLOAD_DIR . $existing['file_path'];
+                if (file_exists($oldFullPath)) {
+                    @unlink($oldFullPath);
+                }
+                db()->query("DELETE FROM project_documents WHERE id = ?", [$existing['id']]);
+                setFlashMessage('success', 'Checklist document removed.');
+            }
+        } catch (Exception $e) {
+            setFlashMessage('error', 'Database error: ' . $e->getMessage());
+        }
     }
     $auth->redirect(APP_URL . '/admin/project-view.php?id=' . $projectId);
 }
@@ -212,10 +407,10 @@ $isPendingApproval = ($project['approval_status'] ?? 'APPROVED') === 'PENDING_AP
 $isRejected = ($project['approval_status'] ?? '') === 'REJECTED';
 
 $requiredDocs = [
+    'Purchase Request',
     'Memorandum',
-    'Source of Fund (SAO)',
-    'Project Proposal',
-    'Signed RFQ (Request for Quotation)',
+    'Activity or Project Proposal',
+    'SARO',
 ];
 $uploadedCategories = array_keys($projectDocuments);
 
@@ -505,6 +700,186 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
             </div>
         </div>
+
+        <!-- Procurement Checklist Card -->
+        <div class="pv-card">
+            <div class="pv-card-header">
+                <h2><i class="fas fa-clipboard-list"></i> Procurement Checklist</h2>
+            </div>
+            <div class="pv-card-body">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">
+                    Please upload the required procurement documents. Purchase Request is mandatory before sending this project to SDO FAST.
+                </p>
+                
+                <?php
+                // Fetch checklist documents for the project
+                try {
+                    $checklistDocs = db()->fetchAll("SELECT * FROM project_documents WHERE project_id = ?", [$projectId]);
+                } catch (\Exception $ex) {
+                    $checklistDocs = [];
+                }
+                $checklistDocsByCat = [];
+                foreach ($checklistDocs as $doc) {
+                    $checklistDocsByCat[$doc['category']] = $doc;
+                }
+
+                $checklistItems = [
+                    'purchase_request' => [
+                        'title' => 'Purchase Request',
+                        'desc' => '3 original copies required',
+                        'required' => true
+                    ],
+                    'memorandum' => [
+                        'title' => 'Memorandum',
+                        'desc' => 'photocopy only, if applicable',
+                        'required' => false
+                    ],
+                    'activity_proposal' => [
+                        'title' => 'Activity or Project Proposal',
+                        'desc' => 'photocopy only, if applicable',
+                        'required' => false
+                    ],
+                    'saro' => [
+                        'title' => 'SARO',
+                        'desc' => 'photocopy only, if applicable',
+                        'required' => false
+                    ]
+                ];
+                
+                foreach ($checklistItems as $slug => $item):
+                    $uploadedDoc = $checklistDocsByCat[$slug] ?? null;
+                ?>
+                <div style="padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <span style="font-weight: 700; color: #1e293b; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+                                <?php if ($uploadedDoc): ?>
+                                    <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                                <?php else: ?>
+                                    <i class="fas fa-exclamation-circle" style="color: <?php echo $item['required'] ? '#ef4444' : '#94a3b8'; ?>;"></i>
+                                <?php endif; ?>
+                                <?php echo htmlspecialchars($item['title']); ?>
+                                <?php if ($item['required']): ?>
+                                    <span style="color: #ef4444; font-size: 0.8rem; font-weight: 600;">(Required)</span>
+                                <?php else: ?>
+                                    <span style="color: #64748b; font-size: 0.8rem; font-weight: 500;">(Optional)</span>
+                                <?php endif; ?>
+                            </span>
+                            <span style="display: block; font-size: 0.8rem; color: #64748b; margin-top: 4px;"><?php echo htmlspecialchars($item['desc']); ?></span>
+                            
+                            <?php if ($uploadedDoc): ?>
+                                <div style="margin-top: 8px; font-size: 0.85rem;">
+                                    <a href="<?php echo APP_URL; ?>/uploads/<?php echo htmlspecialchars($uploadedDoc['file_path']); ?>" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                                        <i class="fas fa-file-download"></i> <?php echo htmlspecialchars($uploadedDoc['original_name']); ?>
+                                    </a>
+                                    <span style="color: #94a3b8; font-size: 0.75rem;">(<?php echo number_format($uploadedDoc['file_size'] / 1024, 1); ?> KB)</span>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <?php if ($uploadedDoc): ?>
+                                <form method="POST" style="margin: 0; display: inline;">
+                                    <input type="hidden" name="action" value="delete_checklist_file">
+                                    <input type="hidden" name="category_slug" value="<?php echo $slug; ?>">
+                                    <button type="submit" class="btn btn-secondary btn-sm" style="background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; padding: 6px 10px; font-size: 0.75rem;" onclick="return confirm('Remove this document?');">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                            <?php endif; ?>
+                            
+                            <button type="button" class="btn btn-primary btn-sm" style="padding: 6px 12px; font-size: 0.75rem;" onclick="document.getElementById('upload-form-<?php echo $slug; ?>').style.display = document.getElementById('upload-form-<?php echo $slug; ?>').style.display === 'none' ? 'block' : 'none';">
+                                <i class="fas fa-upload"></i> <?php echo $uploadedDoc ? 'Replace' : 'Upload'; ?>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="upload-form-<?php echo $slug; ?>" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #e2e8f0;">
+                        <form method="POST" enctype="multipart/form-data" style="margin: 0;">
+                            <input type="hidden" name="action" value="upload_checklist_file">
+                            <input type="hidden" name="category_slug" value="<?php echo $slug; ?>">
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="file" name="checklist_file" accept=".pdf,.jpg,.jpeg,.png" required class="form-control" style="font-size: 0.8rem; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 6px; flex: 1;">
+                                <button type="submit" class="btn btn-primary btn-sm" style="font-size: 0.8rem;">Submit</button>
+                            </div>
+                            <small style="color: #64748b; font-size: 0.75rem; display: block; margin-top: 4px;">Accepts PDF, JPG, PNG only. Max 5MB.</small>
+                        </form>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <?php if (($project['approval_status'] ?? '') === 'APPROVED' && ($auth->isBacSecretary() || $auth->isSuperAdmin())): ?>
+        <!-- SDO FAST Integration -->
+        <div class="pv-card">
+            <div class="pv-card-header">
+                <h2><i class="fas fa-exchange-alt"></i> SDO FAST Integration</h2>
+                <?php
+                    $fastStatus = $project['fast_sync_status'] ?? null;
+                    $fastStatusClass = '';
+                    $fastStatusLabel = 'Not Synced';
+                    if ($fastStatus === 'SYNCED') {
+                        $fastStatusClass = 'status-approved';
+                        $fastStatusLabel = 'Synced';
+                    } elseif ($fastStatus === 'PENDING') {
+                        $fastStatusClass = 'status-pending-approval';
+                        $fastStatusLabel = 'Pending';
+                    } elseif ($fastStatus === 'FAILED') {
+                        $fastStatusClass = 'status-rejected';
+                        $fastStatusLabel = 'Failed';
+                    }
+                ?>
+                <?php if ($fastStatus): ?>
+                <span class="status-badge <?php echo $fastStatusClass; ?>"><?php echo $fastStatusLabel; ?></span>
+                <?php endif; ?>
+            </div>
+            <div class="pv-card-body">
+                <?php if (!empty($project['fast_tracking_number'])): ?>
+                <div class="pv-info-grid" style="margin-bottom: 16px;">
+                    <div class="pv-info-tile">
+                        <span class="pv-info-label">FAST Tracking Number</span>
+                        <p class="pv-info-value"><?php echo htmlspecialchars($project['fast_tracking_number']); ?></p>
+                    </div>
+                    <?php if (!empty($project['fast_synced_at'])): ?>
+                    <div class="pv-info-tile">
+                        <span class="pv-info-label">Last Synced</span>
+                        <p class="pv-info-value"><?php echo date('M j, Y g:i A', strtotime($project['fast_synced_at'])); ?></p>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
+                <?php if ($fastStatus === 'FAILED'): ?>
+                <div class="alert alert-danger" style="margin-bottom: 16px;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>Previous sync attempt failed. Please check files and try again.</span>
+                </div>
+                <?php endif; ?>
+
+                <?php if (!empty($project['approval_file_path'])): ?>
+                <div style="margin-bottom: 16px; padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
+                    <span style="font-weight: 600; color: #166534; font-size: 0.9rem; display: block; margin-bottom: 4px;">Current Approval Document:</span>
+                    <a href="<?php echo APP_URL; ?>/uploads/<?php echo htmlspecialchars($project['approval_file_path']); ?>" target="_blank" style="color: #15803d; text-decoration: none; font-weight: 700; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-file-pdf"></i> View Saved Approval
+                    </a>
+                </div>
+                <?php endif; ?>
+
+                <form method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="submit_to_fast">
+                    <div style="margin-bottom: 16px;">
+                        <label for="approval_file" style="display: block; font-weight: 600; margin-bottom: 8px;">Upload Approval Document <?php echo empty($project['approval_file_path']) ? '<span style="color: #ef4444;">*</span>' : ''; ?></label>
+                        <input type="file" id="approval_file" name="approval_file" accept=".pdf,.jpg,.jpeg,.png" <?php echo empty($project['approval_file_path']) ? 'required' : ''; ?> class="form-control" style="width: 100%;">
+                        <small style="color: #64748b; font-size: 0.75rem; display: block; margin-top: 4px;">Accepts PDF, JPG, PNG only. Max 5MB.</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary" onclick="return confirm('Submit procurement approval to SDO FAST?');" style="width: 100%;">
+                        <i class="fas fa-paper-plane"></i> <?php echo $fastStatus === 'SYNCED' ? 'Re-sync to SDO FAST' : 'Submit to SDO FAST'; ?>
+                    </button>
+                </form>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <?php if (!empty($activities)): ?>
         <div class="pv-card">

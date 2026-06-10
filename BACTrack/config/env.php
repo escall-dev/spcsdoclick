@@ -15,7 +15,7 @@ if (!function_exists('app_env_load')) {
         }
 
         $loaded = true;
-        $envPath = dirname(dirname(__DIR__)) . '/.env';
+        $envPath = dirname(__DIR__) . '/.env';
         if (!is_readable($envPath)) {
             return;
         }
