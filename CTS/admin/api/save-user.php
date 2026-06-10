@@ -11,21 +11,21 @@ $auth = auth();
 
 // Check authentication
 if (!$auth->isLoggedIn()) {
-    header('Location: /SDO-cts/admin/login.php');
+    header('Location: /CTS/admin/login.php');
     exit;
 }
 
 // Only Super Admin can create/update users
 if (!$auth->isSuperAdmin()) {
     $_SESSION['flash_error'] = 'Access denied. Only Super Admin can manage users.';
-    header('Location: /SDO-cts/admin/users.php');
+    header('Location: /CTS/admin/users.php');
     exit;
 }
 
 // Verify CSRF token
 if (!$auth->verifyCsrfToken($_POST['csrf_token'] ?? '')) {
     $_SESSION['flash_error'] = 'Invalid security token. Please try again.';
-    header('Location: /SDO-cts/admin/users.php');
+    header('Location: /CTS/admin/users.php');
     exit;
 }
 
@@ -69,7 +69,7 @@ if ($password && $password !== $passwordConfirm) {
 
 if (!empty($errors)) {
     $_SESSION['flash_error'] = implode(' ', $errors);
-    header('Location: /SDO-cts/admin/users.php');
+    header('Location: /CTS/admin/users.php');
     exit;
 }
 
@@ -107,6 +107,6 @@ try {
     $_SESSION['flash_error'] = $e->getMessage();
 }
 
-header('Location: /SDO-cts/admin/users.php');
+header('Location: /CTS/admin/users.php');
 exit;
 
