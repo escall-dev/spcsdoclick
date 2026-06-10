@@ -62,8 +62,18 @@ class EmailService {
                 $this->mailer->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
             }
             
-            $this->mailer->Port = SMTP_PORT;
+            $this->applyTransportSettings();
             $this->mailer->CharSet = MAIL_CHARSET;
+
+            if (!SMTP_VERIFY_SSL) {
+                $this->mailer->SMTPOptions = [
+                    'ssl' => [
+                        'verify_peer' => false,
+                        'verify_peer_name' => false,
+                        'allow_self_signed' => true,
+                    ],
+                ];
+            }
 
             // Set default sender
             if (MAIL_FROM_ADDRESS) {
@@ -82,6 +92,126 @@ class EmailService {
             $this->lastError = "Mailer Initialization Error: " . $e->getMessage();
             error_log($this->lastError);
         }
+    }
+
+    /**
+     * Apply SMTP port and encryption settings.
+     */
+    private function applyTransportSettings($port = null, $encryption = null) {
+        if (!$this->mailer) {
+            return;
+        }
+
+        $port = $port ?? SMTP_PORT;
+        $encryption = strtolower((string) ($encryption ?? SMTP_ENCRYPTION));
+        $this->mailer->Port = $port;
+
+        if ($encryption === 'tls') {
+            $this->mailer->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $this->mailer->SMTPAutoTLS = true;
+        } elseif ($encryption === 'ssl') {
+            $this->mailer->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+            $this->mailer->SMTPAutoTLS = false;
+        } else {
+            $this->mailer->SMTPSecure = '';
+            $this->mailer->SMTPAutoTLS = false;
+        }
+    }
+
+    /**
+     * Determine whether another SMTP transport attempt may help.
+     */
+    private function isRetryableSmtpError($message) {
+        $message = strtolower((string) $message);
+        $needles = [
+            'connect',
+            'connection',
+            'timeout',
+            'timed out',
+            'could not',
+            'stream_socket_client',
+            'smtp connect() failed',
+            'failed to connect',
+        ];
+
+        foreach ($needles as $needle) {
+            if (strpos($message, $needle) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Try configured SMTP transport, then common shared-hosting fallbacks.
+     */
+    private function deliverSmtpMessage(callable $prepareMessage) {
+        if (!$this->mailer) {
+            return false;
+        }
+
+        $transportAttempts = [
+            ['port' => SMTP_PORT, 'encryption' => SMTP_ENCRYPTION],
+        ];
+
+        if (SMTP_PORT !== 465 || strtolower(SMTP_ENCRYPTION) !== 'ssl') {
+            $transportAttempts[] = ['port' => 465, 'encryption' => 'ssl'];
+        }
+
+        if (SMTP_PORT !== 587 || strtolower(SMTP_ENCRYPTION) !== 'tls') {
+            $transportAttempts[] = ['port' => 587, 'encryption' => 'tls'];
+        }
+
+        $lastError = $this->lastError;
+
+        foreach ($transportAttempts as $transport) {
+            $this->applyTransportSettings($transport['port'], $transport['encryption']);
+            $this->resetMailer();
+
+            try {
+                $prepareMessage();
+                $this->mailer->send();
+                $this->lastError = '';
+                return true;
+            } catch (Throwable $e) {
+                $lastError = $this->mailer ? $this->mailer->ErrorInfo : $e->getMessage();
+                if (!$this->isRetryableSmtpError($lastError)) {
+                    break;
+                }
+            }
+        }
+
+        $this->lastError = $lastError ?: 'SMTP delivery failed';
+        return false;
+    }
+
+    /**
+     * Last-resort delivery for shared hosts that block external SMTP.
+     */
+    private function sendViaPhpMail(array $recipients, $subject, $body) {
+        if (!function_exists('mail') || MAIL_FROM_ADDRESS === '') {
+            return false;
+        }
+
+        $from = sprintf('%s <%s>', MAIL_FROM_NAME, MAIL_FROM_ADDRESS);
+        $headers = implode("\r\n", [
+            'MIME-Version: 1.0',
+            'Content-Type: text/html; charset=UTF-8',
+            'From: ' . $from,
+            'Reply-To: ' . (MAIL_REPLY_TO ?: MAIL_FROM_ADDRESS),
+            'X-Mailer: SDO-CTS',
+        ]);
+
+        $allSent = true;
+        foreach ($recipients as $recipient) {
+            if (!@mail(trim($recipient), $subject, $body, $headers)) {
+                $allSent = false;
+                $this->lastError = 'PHP mail() delivery failed';
+            }
+        }
+
+        return $allSent;
     }
 
     /**
@@ -174,51 +304,40 @@ class EmailService {
             return true;
         }
 
-        if (!$this->mailer) {
+        $recipients = is_array($to) ? $to : [$to];
+        $sent = false;
+
+        if ($this->mailer) {
+            $sent = $this->deliverSmtpMessage(function () use ($recipients, $subject, $body) {
+                foreach ($recipients as $recipient) {
+                    $this->mailer->addAddress(trim($recipient));
+                }
+
+                $this->embedLogos();
+                $this->mailer->Subject = $subject;
+                $this->mailer->Body = $body;
+                $this->mailer->AltBody = strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>'], "\n", $body));
+            });
+        } else {
             $this->lastError = $this->lastError ?: 'Mailer not initialized';
-            $recipients = is_array($to) ? $to : [$to];
-            foreach ($recipients as $recipient) {
-                $this->logEmail(trim($recipient), $subject, $eventType, $referenceId, 'failed', $this->lastError);
-            }
-            return false;
         }
 
-        $this->resetMailer();
-
-        try {
-            // Add recipient(s)
-            $recipients = is_array($to) ? $to : [$to];
-            foreach ($recipients as $recipient) {
-                $this->mailer->addAddress(trim($recipient));
-            }
-
-            // Embed logos for email templates
-            $this->embedLogos();
-
-            $this->mailer->Subject = $subject;
-            $this->mailer->Body = $body;
-            $this->mailer->AltBody = strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>'], "\n", $body));
-
-            $this->mailer->send();
-            
-            // Log successful send
-            foreach ($recipients as $recipient) {
-                $this->logEmail(trim($recipient), $subject, $eventType, $referenceId, 'sent');
-            }
-
-            return true;
-
-        } catch (Throwable $e) {
-            $this->lastError = $this->mailer ? $this->mailer->ErrorInfo : $e->getMessage();
-            
-            // Log failed send
-            $recipients = is_array($to) ? $to : [$to];
-            foreach ($recipients as $recipient) {
-                $this->logEmail(trim($recipient), $subject, $eventType, $referenceId, 'failed', $this->lastError);
-            }
-
-            return false;
+        if (!$sent && MAIL_USE_PHP_MAIL_FALLBACK) {
+            $sent = $this->sendViaPhpMail($recipients, $subject, $body);
         }
+
+        foreach ($recipients as $recipient) {
+            $this->logEmail(
+                trim($recipient),
+                $subject,
+                $eventType,
+                $referenceId,
+                $sent ? 'sent' : 'failed',
+                $sent ? null : $this->lastError
+            );
+        }
+
+        return $sent;
     }
 
     /**
@@ -229,52 +348,44 @@ class EmailService {
             return true;
         }
 
-        if (!$this->mailer) {
+        $recipients = is_array($to) ? $to : [$to];
+        $sent = false;
+
+        if ($this->mailer) {
+            $sent = $this->deliverSmtpMessage(function () use ($recipients, $subject, $body, $attachmentPath, $attachmentName) {
+                foreach ($recipients as $recipient) {
+                    $this->mailer->addAddress(trim($recipient));
+                }
+
+                $this->embedLogos();
+                $this->mailer->Subject = $subject;
+                $this->mailer->Body = $body;
+                $this->mailer->AltBody = strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>'], "\n", $body));
+
+                if (file_exists($attachmentPath)) {
+                    $this->mailer->addAttachment($attachmentPath, $attachmentName ?: basename($attachmentPath));
+                }
+            });
+        } else {
             $this->lastError = $this->lastError ?: 'Mailer not initialized';
-            $recipients = is_array($to) ? $to : [$to];
-            foreach ($recipients as $recipient) {
-                $this->logEmail(trim($recipient), $subject, $eventType, $referenceId, 'failed', $this->lastError);
-            }
-            return false;
         }
 
-        $this->resetMailer();
-
-        try {
-            $recipients = is_array($to) ? $to : [$to];
-            foreach ($recipients as $recipient) {
-                $this->mailer->addAddress(trim($recipient));
-            }
-
-            // Embed logos for email templates
-            $this->embedLogos();
-
-            $this->mailer->Subject = $subject;
-            $this->mailer->Body = $body;
-            $this->mailer->AltBody = strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>'], "\n", $body));
-
-            if (file_exists($attachmentPath)) {
-                $this->mailer->addAttachment($attachmentPath, $attachmentName ?: basename($attachmentPath));
-            }
-
-            $this->mailer->send();
-            
-            foreach ($recipients as $recipient) {
-                $this->logEmail(trim($recipient), $subject, $eventType, $referenceId, 'sent');
-            }
-
-            return true;
-
-        } catch (Throwable $e) {
-            $this->lastError = $this->mailer ? $this->mailer->ErrorInfo : $e->getMessage();
-            
-            $recipients = is_array($to) ? $to : [$to];
-            foreach ($recipients as $recipient) {
-                $this->logEmail(trim($recipient), $subject, $eventType, $referenceId, 'failed', $this->lastError);
-            }
-
-            return false;
+        if (!$sent && MAIL_USE_PHP_MAIL_FALLBACK) {
+            $sent = $this->sendViaPhpMail($recipients, $subject, $body);
         }
+
+        foreach ($recipients as $recipient) {
+            $this->logEmail(
+                trim($recipient),
+                $subject,
+                $eventType,
+                $referenceId,
+                $sent ? 'sent' : 'failed',
+                $sent ? null : $this->lastError
+            );
+        }
+
+        return $sent;
     }
 
     /**
@@ -299,56 +410,47 @@ class EmailService {
             return true;
         }
 
-        if (!$this->mailer) {
-            $this->lastError = $this->lastError ?: 'Mailer not initialized';
-            $recipients = is_array($to) ? $to : [$to];
-            foreach ($recipients as $recipient) {
-                $this->logEmail(trim($recipient), $subject, $eventType, $referenceId, 'failed', $this->lastError);
-            }
-            return false;
-        }
+        $recipients = is_array($to) ? $to : [$to];
+        $sent = false;
 
-        $this->resetMailer();
-
-        try {
-            $recipients = is_array($to) ? $to : [$to];
-            foreach ($recipients as $recipient) {
-                $this->mailer->addAddress(trim($recipient));
-            }
-
-            // Embed logos for email templates
-            $this->embedLogos();
-
-            $this->mailer->Subject = $subject;
-            $this->mailer->Body = $body;
-            $this->mailer->AltBody = strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>'], "\n", $body));
-
-            // Add all attachments
-            foreach ($attachments as $attachment) {
-                if (isset($attachment['path']) && file_exists($attachment['path'])) {
-                    $attachmentName = $attachment['name'] ?? basename($attachment['path']);
-                    $this->mailer->addAttachment($attachment['path'], $attachmentName);
+        if ($this->mailer) {
+            $sent = $this->deliverSmtpMessage(function () use ($recipients, $subject, $body, $attachments) {
+                foreach ($recipients as $recipient) {
+                    $this->mailer->addAddress(trim($recipient));
                 }
-            }
 
-            $this->mailer->send();
-            
-            foreach ($recipients as $recipient) {
-                $this->logEmail(trim($recipient), $subject, $eventType, $referenceId, 'sent');
-            }
+                $this->embedLogos();
+                $this->mailer->Subject = $subject;
+                $this->mailer->Body = $body;
+                $this->mailer->AltBody = strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>'], "\n", $body));
 
-            return true;
-
-        } catch (Throwable $e) {
-            $this->lastError = $this->mailer ? $this->mailer->ErrorInfo : $e->getMessage();
-            
-            $recipients = is_array($to) ? $to : [$to];
-            foreach ($recipients as $recipient) {
-                $this->logEmail(trim($recipient), $subject, $eventType, $referenceId, 'failed', $this->lastError);
-            }
-
-            return false;
+                foreach ($attachments as $attachment) {
+                    if (isset($attachment['path']) && file_exists($attachment['path'])) {
+                        $attachmentName = $attachment['name'] ?? basename($attachment['path']);
+                        $this->mailer->addAttachment($attachment['path'], $attachmentName);
+                    }
+                }
+            });
+        } else {
+            $this->lastError = $this->lastError ?: 'Mailer not initialized';
         }
+
+        if (!$sent && MAIL_USE_PHP_MAIL_FALLBACK) {
+            $sent = $this->sendViaPhpMail($recipients, $subject, $body);
+        }
+
+        foreach ($recipients as $recipient) {
+            $this->logEmail(
+                trim($recipient),
+                $subject,
+                $eventType,
+                $referenceId,
+                $sent ? 'sent' : 'failed',
+                $sent ? null : $this->lastError
+            );
+        }
+
+        return $sent;
     }
 
     /**
@@ -407,12 +509,33 @@ class EmailService {
             return ['success' => false, 'message' => $this->lastError ?: 'Mailer not initialized'];
         }
 
-        try {
-            $this->mailer->smtpConnect();
-            $this->mailer->smtpClose();
-            return ['success' => true, 'message' => 'SMTP connection successful'];
-        } catch (Exception $e) {
-            return ['success' => false, 'message' => $e->getMessage()];
+        $transportAttempts = [
+            ['port' => SMTP_PORT, 'encryption' => SMTP_ENCRYPTION, 'label' => SMTP_PORT . '/' . SMTP_ENCRYPTION],
+        ];
+
+        if (SMTP_PORT !== 465 || strtolower(SMTP_ENCRYPTION) !== 'ssl') {
+            $transportAttempts[] = ['port' => 465, 'encryption' => 'ssl', 'label' => '465/ssl'];
         }
+
+        if (SMTP_PORT !== 587 || strtolower(SMTP_ENCRYPTION) !== 'tls') {
+            $transportAttempts[] = ['port' => 587, 'encryption' => 'tls', 'label' => '587/tls'];
+        }
+
+        $errors = [];
+        foreach ($transportAttempts as $transport) {
+            try {
+                $this->applyTransportSettings($transport['port'], $transport['encryption']);
+                $this->mailer->smtpConnect();
+                $this->mailer->smtpClose();
+                return [
+                    'success' => true,
+                    'message' => 'SMTP connection successful via ' . $transport['label'],
+                ];
+            } catch (Exception $e) {
+                $errors[] = $transport['label'] . ': ' . $e->getMessage();
+            }
+        }
+
+        return ['success' => false, 'message' => implode(' | ', $errors)];
     }
 }

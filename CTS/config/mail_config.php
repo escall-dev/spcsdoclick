@@ -38,6 +38,8 @@ define('ADMIN_EMAIL_RECIPIENTS', cts_env('ADMIN_EMAIL_RECIPIENTS', ''));
 // Email Settings
 define('MAIL_CHARSET', 'UTF-8');
 define('MAIL_DEBUG', intval(cts_env('MAIL_DEBUG', 0))); // 0 = off, 1 = client, 2 = server
+define('SMTP_VERIFY_SSL', filter_var(cts_env('SMTP_VERIFY_SSL', 'false'), FILTER_VALIDATE_BOOLEAN));
+define('MAIL_USE_PHP_MAIL_FALLBACK', filter_var(cts_env('MAIL_USE_PHP_MAIL_FALLBACK', 'true'), FILTER_VALIDATE_BOOLEAN));
 
 // Email Templates Path
 define('EMAIL_TEMPLATES_PATH', __DIR__ . '/../services/email/templates/');

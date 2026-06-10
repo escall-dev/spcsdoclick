@@ -14,6 +14,7 @@ if (!isset($_SESSION['submission_success'])) {
 $success = $_SESSION['submission_success'];
 $referenceNumber = $success['reference_number'];
 $email = $success['email'];
+$emailSent = !empty($success['email_sent']);
 
 // Clear the success session
 unset($_SESSION['submission_success']);
@@ -108,6 +109,18 @@ unset($_SESSION['submission_success']);
                     📋 Copy Reference Number
                 </button>
             </div>
+
+            <?php if ($emailSent): ?>
+                <div style="background:#d1fae5;border:1px solid #10b981;color:#065f46;padding:14px 16px;border-radius:8px;margin:1rem 0 0;text-align:left;">
+                    A confirmation email has been sent to <strong><?php echo htmlspecialchars($email); ?></strong>.
+                    Please check your inbox and spam folder.
+                </div>
+            <?php else: ?>
+                <div style="background:#fff8e6;border:1px solid #f59e0b;color:#92400e;padding:14px 16px;border-radius:8px;margin:1rem 0 0;text-align:left;">
+                    We could not send a confirmation email to <strong><?php echo htmlspecialchars($email); ?></strong> right now.
+                    Your complaint is saved — please keep your reference number above for tracking.
+                </div>
+            <?php endif; ?>
             
             <div class="info-card">
                 <h4>📌 What Happens Next?</h4>

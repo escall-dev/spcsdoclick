@@ -111,6 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_submit'])) {
             }
 
             // Send email notifications (does not interrupt if fails)
+            $emailSent = false;
             try {
                 $notificationData = array_merge($complaintData, [
                     'id' => $complaintId,
@@ -131,7 +132,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_submit'])) {
 
             $_SESSION['submission_success'] = [
                 'reference_number' => $referenceNumber,
-                'email' => $complainantEmail
+                'email' => $complainantEmail,
+                'email_sent' => $emailSent
             ];
 
             header('Location: success.php');
