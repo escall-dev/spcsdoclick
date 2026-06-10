@@ -232,7 +232,7 @@ include __DIR__ . '/includes/header.php';
             <h3 id="userModalTitle">Add User</h3>
             <button type="button" class="modal-close" onclick="closeModal('userModal')">&times;</button>
         </div>
-        <form method="POST" action="/CTS/admin/api/save-user.php" id="userForm">
+        <form method="POST" action="api/save-user.php" id="userForm">
             <div class="modal-body">
                 <input type="hidden" name="user_id" id="userId" value="">
                 <input type="hidden" name="csrf_token" value="<?php echo $auth->generateCsrfToken(); ?>">
@@ -366,7 +366,7 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-outline" onclick="closeModal('statusModal')">Cancel</button>
-            <form method="POST" action="/CTS/admin/api/user-status.php" id="statusForm" style="display:inline;">
+            <form method="POST" action="api/user-status.php" id="statusForm" style="display:inline;">
                 <input type="hidden" name="user_id" id="statusUserId" value="">
                 <input type="hidden" name="action" id="statusAction" value="">
                 <input type="hidden" name="csrf_token" value="<?php echo $auth->generateCsrfToken(); ?>">

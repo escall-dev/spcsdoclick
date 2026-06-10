@@ -261,7 +261,7 @@ include __DIR__ . '/includes/header.php';
             <h3>Update Status</h3>
             <button type="button" class="modal-close" onclick="closeModal('statusModal')">&times;</button>
         </div>
-        <form method="POST" action="/CTS/admin/api/update-status.php" id="statusForm">
+        <form method="POST" action="api/update-status.php" id="statusForm">
             <div class="modal-body">
                 <input type="hidden" name="complaint_id" id="statusComplaintId">
                 <input type="hidden" name="csrf_token" value="<?php echo $auth->generateCsrfToken(); ?>">

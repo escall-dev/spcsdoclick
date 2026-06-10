@@ -10,7 +10,7 @@ $auth = auth();
 
 // Check authentication and permission
 if (!$auth->isLoggedIn()) {
-    header('Location: /SDO-cts/admin/login.php');
+    header('Location: ../login.php');
     exit;
 }
 
@@ -32,7 +32,7 @@ $notes = trim($_POST['notes'] ?? '');
 
 if (!$complaintId || !$unit) {
     $_SESSION['flash_error'] = 'Invalid request.';
-    header('Location: /SDO-cts/admin/complaints.php');
+    header('Location: ../complaints.php');
     exit;
 }
 
@@ -40,7 +40,7 @@ if (!$complaintId || !$unit) {
 $validUnits = array_keys(UNITS);
 if (!in_array($unit, $validUnits)) {
     $_SESSION['flash_error'] = 'Invalid unit selected.';
-    header('Location: /SDO-cts/admin/complaint-view.php?id=' . $complaintId);
+    header('Location: ../complaint-view.php?id=' . $complaintId);
     exit;
 }
 
@@ -65,6 +65,6 @@ try {
 }
 
 // Redirect back to complaint view
-header('Location: /SDO-cts/admin/complaint-view.php?id=' . $complaintId);
+header('Location: ../complaint-view.php?id=' . $complaintId);
 exit;
 

@@ -11,7 +11,7 @@ $auth = auth();
 
 // Check authentication and permission
 if (!$auth->isLoggedIn()) {
-    header('Location: /SDO-cts/admin/login.php');
+    header('Location: ../login.php');
     exit;
 }
 
@@ -33,7 +33,7 @@ $notes = trim($_POST['notes'] ?? '');
 
 if (!$complaintId || !$status) {
     $_SESSION['flash_error'] = 'Invalid request.';
-    header('Location: /SDO-cts/admin/complaints.php');
+    header('Location: ../complaints.php');
     exit;
 }
 
@@ -50,7 +50,7 @@ try {
     // Require notes for progress updates
     if ($isProgressUpdate && empty($notes)) {
         $_SESSION['flash_error'] = 'Please provide a progress note.';
-        $referer = $_SERVER['HTTP_REFERER'] ?? '/SDO-cts/admin/complaints.php';
+        $referer = $_SERVER['HTTP_REFERER'] ?? '../complaints.php';
         header('Location: ' . $referer);
         exit;
     }
@@ -86,7 +86,7 @@ try {
 }
 
 // Redirect back
-$referer = $_SERVER['HTTP_REFERER'] ?? '/SDO-cts/admin/complaints.php';
+$referer = $_SERVER['HTTP_REFERER'] ?? '../complaints.php';
 header('Location: ' . $referer);
 exit;
 

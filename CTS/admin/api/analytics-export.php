@@ -9,7 +9,7 @@ require_once __DIR__ . '/../../config/database.php';
 $auth = auth();
 
 if (!$auth->isLoggedIn()) {
-    header('Location: /SDO-cts/admin/login.php');
+    header('Location: ../login.php');
     exit;
 }
 

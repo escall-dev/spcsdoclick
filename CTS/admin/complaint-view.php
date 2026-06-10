@@ -1254,7 +1254,7 @@ include __DIR__ . '/includes/header.php';
             <h3 id="actionModalTitle">Action</h3>
             <button type="button" class="modal-close" onclick="closeModal('actionModal')">&times;</button>
         </div>
-        <form method="POST" action="/SDO-cts/admin/api/complaint-action.php" id="actionForm">
+        <form method="POST" action="api/complaint-action.php" id="actionForm">
             <div class="modal-body">
                 <input type="hidden" name="complaint_id" value="<?php echo $complaint['id']; ?>">
                 <input type="hidden" name="action" id="actionType">
@@ -1280,7 +1280,7 @@ include __DIR__ . '/includes/header.php';
             <h3><i class="fas fa-exchange-alt"></i> Update Status</h3>
             <button type="button" class="modal-close" onclick="closeModal('statusModal')">&times;</button>
         </div>
-        <form method="POST" action="/SDO-cts/admin/api/update-status.php">
+        <form method="POST" action="api/update-status.php">
             <div class="modal-body">
                 <input type="hidden" name="complaint_id" value="<?php echo $complaint['id']; ?>">
                 <input type="hidden" name="csrf_token" value="<?php echo $auth->generateCsrfToken(); ?>">
@@ -1321,7 +1321,7 @@ include __DIR__ . '/includes/header.php';
             <h3 style="color:#8b5cf6;"><i class="fas fa-clipboard-list"></i> Add Progress Update</h3>
             <button type="button" class="modal-close" onclick="closeModal('progressModal')">&times;</button>
         </div>
-        <form method="POST" action="/SDO-cts/admin/api/update-status.php">
+        <form method="POST" action="api/update-status.php">
             <div class="modal-body">
                 <input type="hidden" name="complaint_id" value="<?php echo $complaint['id']; ?>">
                 <input type="hidden" name="status" value="in_progress">
