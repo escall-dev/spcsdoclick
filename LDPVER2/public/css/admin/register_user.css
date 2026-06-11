@@ -1,0 +1,447 @@
+@import url("../base/variables.css");
+
+/* 
+ * Registration Panel Institutional Redesign
+ * Goal: Professional, structured, and trustworthy UI for school staff.
+ */
+
+:root {
+    --inst-blue-dark: #1b4a9a;
+    --inst-blue-primary: #1e293b;
+    --inst-blue-accent: #3282b8;
+    --inst-neutral-bg: #f8fafc;
+    --inst-border: #e2e8f0;
+    --inst-text-main: #1e293b;
+    --inst-text-muted: #64748b;
+    --inst-input-height: 40px;
+}
+
+.main-content {
+    background-color: #f1f5f9;
+    height: 100vh;
+    overflow: visible !important;
+}
+
+html,
+body {
+    overflow: hidden;
+    height: 100%;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+::-webkit-scrollbar {
+    display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+* {
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+}
+
+.register-layout {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 16px;
+    align-items: start;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding-bottom: 0px;
+}
+
+/* --- Left Panel: Account Access --- */
+.register-panel-left {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    position: sticky;
+    top: 20px;
+}
+
+.panel-header-blue {
+    background: linear-gradient(135deg, #1b4a9a 0%, #1e3a5f 100%);
+    padding: 24px 20px;
+    color: white;
+    border-bottom: 3px solid rgba(255, 255, 255, 0.1);
+}
+
+.panel-header-blue h2 {
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #ffffff !important;
+}
+
+.panel-header-blue h2 i {
+    font-size: 1.25rem;
+    opacity: 0.95;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.panel-header-blue p {
+    font-size: 0.78rem;
+    font-weight: 500;
+    opacity: 0.85;
+    margin: 6px 0 0 36px;
+    letter-spacing: 0.02em;
+    color: #e2e8f0;
+}
+
+.panel-body {
+    padding: 16px 20px;
+}
+
+/* Profile Photo */
+.profile-upload-section {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.avatar-container {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #f1f5f9;
+    background: white;
+}
+
+.avatar-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(27, 74, 154, 0.7);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    opacity: 0;
+    transition: all 0.3s;
+    cursor: pointer;
+    backdrop-filter: blur(2px);
+    z-index: 2;
+}
+
+.avatar-container:hover .avatar-overlay {
+    opacity: 1;
+}
+
+/* Hidden file input that covers the whole container */
+.profile-upload-section input[type="file"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.upload-text {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--inst-text-muted);
+    text-transform: uppercase;
+}
+
+/* Fields & Inputs */
+.form-group-custom {
+    margin-bottom: 16px;
+}
+
+.custom-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--inst-text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.custom-input,
+.custom-select {
+    width: 100%;
+    height: var(--inst-input-height);
+    background: var(--inst-neutral-bg);
+    border: 1.5px solid var(--inst-border);
+    border-radius: 10px;
+    padding: 0 16px;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--inst-text-main);
+    transition: all 0.25s;
+}
+
+.input-with-icon {
+    position: relative;
+}
+
+.input-with-icon i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--inst-blue-dark);
+    font-size: 1.1rem;
+}
+
+.input-with-icon .custom-input {
+    padding-left: 48px;
+}
+
+.custom-input:focus,
+.custom-select:focus {
+    background: white;
+    border-color: var(--inst-blue-dark);
+    box-shadow: 0 0 0 4px rgba(27, 74, 154, 0.08);
+    outline: none;
+}
+
+.helper-text {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--inst-text-muted);
+    font-style: italic;
+    margin-top: 6px;
+}
+
+.panel-footer-btn {
+    margin-top: 24px;
+}
+
+.btn-create-account {
+    width: 100%;
+    height: 48px;
+    background: var(--primary-gradient);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    font-size: 0.9rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: 0 4px 15px rgba(27, 74, 154, 0.25);
+}
+
+.btn-create-account:hover {
+    background: linear-gradient(135deg, #2a63c9 0%, #1b4a9a 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(27, 74, 154, 0.35);
+}
+
+.btn-create-account:active {
+    transform: translateY(0);
+}
+
+.btn-create-account i {
+    font-size: 1.15rem;
+}
+
+/* --- Right Panel: Form Content --- */
+.register-panel-right {
+    min-height: 100%;
+}
+
+.form-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.form-card-header {
+    background: #f8fafc;
+    padding: 16px 24px;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.form-card-header h2 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--inst-blue-dark);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.form-card-body {
+    padding: 20px 24px;
+}
+
+.form-section {
+    margin-bottom: 24px;
+}
+
+.form-section:last-child {
+    margin-bottom: 0;
+}
+
+.section-title {
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--inst-blue-dark);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--inst-neutral-bg);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.form-field {
+    margin-bottom: 0;
+}
+
+.form-field.span-2 {
+    grid-column: span 2;
+}
+
+.form-field label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--inst-text-muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.form-field input,
+.form-field select,
+.form-select-custom {
+    width: 100%;
+    height: var(--inst-input-height);
+    background: var(--inst-neutral-bg);
+    border: 1.5px solid var(--inst-border);
+    border-radius: 10px;
+    padding: 0 16px;
+    font-size: 0.9rem;
+    color: var(--inst-text-main);
+    transition: all 0.2s;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-select-custom:focus {
+    background: white;
+    border-color: var(--inst-blue-dark);
+    box-shadow: 0 0 0 4px rgba(27, 74, 154, 0.08);
+    outline: none;
+}
+
+/* Tom Select Professional Refinement */
+.ts-control {
+    min-height: var(--inst-input-height) !important;
+    padding: 0 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    background: var(--inst-neutral-bg) !important;
+    border: 1.5px solid var(--inst-border) !important;
+    border-radius: 10px !important;
+    transition: all 0.2s !important;
+}
+
+.ts-control input {
+    font-size: 0.9rem !important;
+    color: var(--inst-text-main) !important;
+}
+
+.ts-wrapper.focus .ts-control {
+    background: white !important;
+    border-color: var(--inst-blue-dark) !important;
+    box-shadow: 0 0 0 4px rgba(27, 74, 154, 0.08) !important;
+}
+
+.ts-dropdown {
+    border-radius: 10px !important;
+    margin-top: 4px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid var(--inst-border) !important;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .register-layout {
+        grid-template-columns: 1fr;
+        max-width: 800px;
+    }
+
+    .register-panel-left {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-field.span-2 {
+        grid-column: auto;
+    }
+
+    .form-card-body {
+        padding: 24px;
+    }
+}
+
+@media (max-width: 992px) {
+
+    /* Mobile Layout Fixes */
+    html,
+    body {
+        overflow-y: auto !important;
+        /* Allow scrolling on mobile */
+        height: auto !important;
+    }
+
+    .main-content {
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .register-layout {
+        padding-bottom: 80px;
+        /* Space for bottom scroll */
+        display: block;
+        /* Stack panels */
+    }
+
+    .register-panel-left {
+        margin-bottom: 20px;
+    }
+}

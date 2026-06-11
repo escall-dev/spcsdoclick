@@ -1,0 +1,505 @@
+@import url("../base/variables.css");
+@import url("../pages/profile.css");
+
+/* ========================================
+   ENTERPRISE ADMIN PROFILE DESIGN SYSTEM
+   Primary: Deep Blue #0F4C81
+   Accent: Orange #F59E0B
+   ======================================== */
+
+:root {
+    --enterprise-blue: #0F4C81;
+    --enterprise-blue-light: #1a5a99;
+    --enterprise-blue-dark: #0a3d6b;
+    --enterprise-orange: #F59E0B;
+    --enterprise-orange-light: #fbbf24;
+    --enterprise-orange-dark: #d97706;
+    --neutral-50: #f9fafb;
+    --neutral-100: #f3f4f6;
+    --neutral-200: #e5e7eb;
+    --neutral-300: #d1d5db;
+    --neutral-500: #6b7280;
+    --neutral-700: #374151;
+    --neutral-900: #111827;
+
+    /* Layout Rhythm */
+    --profile-gap: 16px;
+    --profile-padding: 24px;
+}
+
+/* ========================================
+   ADMIN PROFILE CONTAINER (ALIGNED GRID)
+   ======================================== */
+.admin-profile-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 20px 0 20px;
+    /* Minimal bottom padding */
+    display: grid;
+    grid-template-columns: 1.25fr 1fr;
+    gap: var(--profile-gap);
+    align-items: start;
+}
+
+.content-wrapper {
+    padding-bottom: 0 !important;
+}
+
+/* ========================================
+   CARD FOUNDATION (COMPACT)
+   ======================================== */
+.dashboard-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    margin-bottom: var(--profile-gap);
+    overflow: hidden;
+    transition: all 0.2s ease;
+    border: 1px solid var(--neutral-200);
+}
+
+.dashboard-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.card-header {
+    background: linear-gradient(to bottom, #ffffff, var(--neutral-50));
+    padding: 14px var(--profile-padding);
+    border-bottom: 1px solid var(--neutral-200);
+    display: flex;
+    align-items: center;
+}
+
+.card-header h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--enterprise-blue);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.01em;
+}
+
+.card-body {
+    padding: var(--profile-padding);
+    flex: 1;
+}
+
+/* ========================================
+   1️⃣ CORE IDENTIFICATION (STRICT GRID)
+   ======================================== */
+.identification-card-body {
+    padding: 35px 30px;
+}
+
+.identification-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.identification-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    align-items: center;
+    gap: 24px;
+}
+
+.identification-label {
+    font-size: 0.825rem;
+    font-weight: 800;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
+.identification-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.identification-icon {
+    position: absolute;
+    left: 18px;
+    font-size: 1.2rem;
+    color: var(--enterprise-blue);
+    opacity: 0.85;
+    z-index: 2;
+    /* Lowered from 10 to allow dropdowns to overlap */
+    pointer-events: none;
+}
+
+.identification-input {
+    width: 100%;
+    padding: 12px 20px 12px 56px !important;
+    height: 56px !important;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: #1e293b;
+    background-color: #f8fafc;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.identification-input:focus {
+    background-color: #ffffff;
+    border-color: var(--enterprise-blue);
+    box-shadow: 0 0 0 4px rgba(15, 76, 129, 0.08);
+    outline: none;
+}
+
+.identification-input::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
+    font-style: italic;
+    font-size: 0.95rem;
+}
+
+/* Footer & Actions */
+.identification-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 35px;
+    padding-top: 25px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.btn-back {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.btn-back:hover {
+    color: var(--enterprise-blue);
+    transform: translateX(-4px);
+}
+
+.btn-sync {
+    background: var(--enterprise-blue);
+    color: #ffffff;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    box-shadow: 0 4px 6px -1px rgba(15, 76, 129, 0.1), 0 2px 4px -1px rgba(15, 76, 129, 0.06);
+}
+
+.btn-sync:hover {
+    background: var(--enterprise-blue-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(15, 76, 129, 0.2);
+}
+
+.btn-sync i {
+    font-size: 1.2rem;
+}
+
+/* ========================================
+   ACTION BUTTONS
+   ======================================== */
+.profile-action-footer {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 24px;
+    margin-top: 10px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.btn {
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: #f3f4f6;
+    color: #1f2937;
+    border: none;
+}
+
+.btn-secondary:hover {
+    background-color: #e5e7eb;
+}
+
+.btn-primary.compact {
+    background-color: var(--enterprise-blue);
+    color: #ffffff;
+    border: none;
+}
+
+.btn-primary.compact:hover {
+    background-color: var(--enterprise-blue-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(15, 76, 129, 0.2);
+}
+
+/* ========================================
+   2️⃣ & 3️⃣ ASIDE CARDS (TIGHTENED)
+   ======================================== */
+.privilege-card {
+    border-left: 5px solid var(--enterprise-blue) !important;
+    background: linear-gradient(to right, rgba(15, 76, 129, 0.01), #ffffff);
+}
+
+.privilege-card-body {
+    padding: var(--profile-padding);
+}
+
+.privilege-card,
+.notification-broadcast-card {
+    border-left: 5px solid var(--enterprise-blue) !important;
+}
+
+.notification-broadcast-card {
+    border-left-color: var(--enterprise-orange) !important;
+    margin-bottom: 0;
+}
+
+.privilege-icon-box {
+    width: 52px;
+    height: 52px;
+    background: rgba(15, 76, 129, 0.08);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--enterprise-blue);
+    flex-shrink: 0;
+    box-shadow: inset 0 0 0 1px rgba(15, 76, 129, 0.1);
+}
+
+.privilege-role-level {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #111827;
+}
+
+.privilege-description {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: #4b5563;
+}
+
+/* Notification specific adjustments */
+.notification-card-body {
+    padding: var(--profile-padding);
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--neutral-700);
+    margin-bottom: 6px;
+    display: block;
+}
+
+.notification-card-body .form-select,
+.notification-card-body .form-control {
+    border-radius: 10px;
+    height: 50px;
+    border: 1.5px solid #e5e7eb;
+}
+
+/* Specific Select Alignment */
+.form-control,
+.form-select {
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    height: 48px;
+    border: 1.5px solid var(--neutral-300);
+}
+
+/* Specific Select Alignment & Bug Fix */
+.ts-wrapper.form-select {
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    height: auto !important;
+    width: 100% !important;
+}
+
+.ts-wrapper .ts-control {
+    border-radius: 12px !important;
+    height: 56px !important;
+    padding: 0 16px 0 56px !important;
+    display: flex !important;
+    align-items: center !important;
+    font-size: 1.05rem !important;
+    border: 1.5px solid #e2e8f0 !important;
+    background-color: #f8fafc !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.ts-wrapper.focus .ts-control {
+    background-color: #ffffff !important;
+    border-color: var(--enterprise-blue) !important;
+    box-shadow: 0 0 0 4px rgba(15, 76, 129, 0.08) !important;
+}
+
+.ts-dropdown {
+    z-index: 1000 !important;
+    /* Ensure dropdown is always on top */
+    border-radius: 12px !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+    border: 1.5px solid #e2e8f0 !important;
+    margin-top: 5px !important;
+}
+
+textarea.form-control {
+    height: auto !important;
+    min-height: 80px;
+    padding: 12px 16px !important;
+    line-height: 1.6;
+}
+
+.notification-send-btn {
+    height: 48px !important;
+    padding: 0 24px !important;
+    font-size: 0.9rem !important;
+}
+
+/* ========================================
+   UTILITIES & RESPONSIVE
+   ======================================== */
+.d-flex {
+    display: flex;
+}
+
+.align-items-center {
+    align-items: center;
+}
+
+.gap-20 {
+    gap: 20px;
+}
+
+.text-end {
+    text-align: right;
+}
+
+.mb-0 {
+    margin-bottom: 0 !important;
+}
+
+.mb-3 {
+    margin-bottom: 16px !important;
+}
+
+.text-gradient {
+    background: linear-gradient(135deg, var(--enterprise-blue), var(--enterprise-blue-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.flex-1 {
+    flex: 1;
+}
+
+.gap-15 {
+    gap: 15px;
+}
+
+@media (max-width: 1100px) {
+    .admin-profile-container {
+        grid-template-columns: 1fr;
+        max-width: 800px;
+    }
+}
+
+@media (max-width: 1024px) {
+    .admin-profile-container {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-horizontal-row.multi-col {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-profile-container {
+        padding: 10px;
+    }
+
+    .profile-input-row {
+        grid-template-columns: 1fr;
+    }
+
+    /* Fix for Core Identification on Mobile */
+    .identification-row {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .identification-label {
+        margin-bottom: 4px;
+        font-size: 0.75rem;
+        /* Slightly smaller label on mobile */
+    }
+
+    .identification-card-body {
+        padding: 20px 15px;
+        /* Reduce padding */
+    }
+
+    .profile-action-footer {
+        flex-direction: column-reverse;
+    }
+
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .profile-horizontal-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .form-label-horizontal {
+        min-width: auto;
+    }
+}

@@ -1,0 +1,362 @@
+<?php
+// Extracted variables from $data (handled by Controller::view)
+// $view, $target_id, $filters, $office_categories, $users, $pending_users, $target_user, $audit_logs, $user, $notifRepo
+?>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Users - ELDP</title>
+    <?php require BASE_PATH . 'includes/admin_head.php'; ?>
+    <link rel="stylesheet" href="<?php echo PUBLIC_ROOT; ?>css/admin/manage_users.css?v=<?php echo time(); ?>">
+</head>
+
+<body>
+    <div class="app-layout">
+        <?php require BASE_PATH . 'includes/sidebar.php'; ?>
+
+        <div class="main-content">
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <div class="breadcrumb">
+                        <h1 class="page-title">
+                            Personnel Management
+                            <span class="page-title-secondary">
+                                <?php if ($view === 'details' && $target_user): ?>
+                                    / Verification / <?php echo htmlspecialchars($target_user['full_name']); ?>
+                                <?php endif; ?>
+                            </span>
+                        </h1>
+                    </div>
+                </div>
+                <div class="top-bar-right">
+                    <div class="current-date-box">
+                        <div class="time-section">
+                            <span id="real-time-clock"><?php echo date('h:i:s A'); ?></span>
+                        </div>
+                        <div class="date-section">
+                            <i class="bi bi-calendar3"></i>
+                            <span><?php echo date('F j, Y'); ?></span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main class="content-wrapper">
+                <div class="management-tabs">
+                    <a href="<?php echo PUBLIC_ROOT; ?>index.php/admin/manage-users?view=active"
+                        class="tab-item <?php echo $view === 'active' ? 'active' : ''; ?>">
+                        <i class="bi bi-people-fill"></i> Active Personnel
+                    </a>
+                    <a href="<?php echo PUBLIC_ROOT; ?>index.php/admin/manage-users?view=notifications"
+                        class="tab-item <?php echo $view === 'notifications' ? 'active' : ''; ?>">
+                        <i class="bi bi-clock-history"></i> Profile Log
+                    </a>
+                </div>
+                <div style="height: 1px;"></div>
+
+                <?php if ($view === 'active'): ?>
+                    <!-- Redesigned High-Fidelity Filter Bar -->
+                    <div class="filter-bar filter-bar-card">
+                        <form method="GET" class="filter-form filter-form-flex">
+                            <input type="hidden" name="view" value="active">
+                            <!-- Search Field with Icon -->
+                            <div class="filter-item search-wrapper">
+                                <i class="bi bi-search search-icon"></i>
+                                <input type="text" name="search" value="<?php echo htmlspecialchars($filters['search']); ?>"
+                                    placeholder="Search entries..." class="search-input">
+                            </div>
+
+                            <!-- Role Field -->
+                            <div class="filter-item select-wrapper">
+                                <select name="filter_role" class="select-input">
+                                    <option value="">All Personnel</option>
+                                    <option value="user" <?php echo $filters['role'] === 'user' ? 'selected' : ''; ?>>Staff
+                                    </option>
+                                    <option value="immediate_head" <?php echo $filters['role'] === 'immediate_head' ? 'selected' : ''; ?>>Immediate Head</option>
+                                    <option value="head_hr" <?php echo $filters['role'] === 'head_hr' ? 'selected' : ''; ?>>
+                                        Admin (Human Resource Development)</option>
+                                    <option value="super_admin" <?php echo $filters['role'] === 'super_admin' ? 'selected' : ''; ?>>Super Admin</option>
+                                </select>
+                                <i class="bi bi-chevron-down select-chevron"></i>
+                            </div>
+
+                            <!-- Office Division -->
+                            <div class="filter-item select-wrapper min-w-160">
+                                <select name="filter_office" class="select-input">
+                                    <option value="">All Divisions</option>
+                                    <?php if (!empty($office_categories)): ?>
+                                        <?php foreach ($office_categories as $cat): ?>
+                                            <option value="<?php echo htmlspecialchars($cat); ?>" <?php echo ($filters['office'] ?? '') === $cat ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($cat); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                                <i class="bi bi-chevron-down select-chevron"></i>
+                            </div>
+
+                            <!-- Apply Button -->
+                            <div class="filter-actions filter-actions-flex">
+                                <button type="submit" class="btn-apply">
+                                    <i class="bi bi-funnel-fill" style="font-size: 0.85rem;"></i> Apply
+                                </button>
+                                <?php if ($filters['search'] || $filters['role'] || $filters['office']): ?>
+                                    <a href="<?php echo PUBLIC_ROOT; ?>index.php/admin/manage-users?view=active"
+                                        class="btn-clear">
+                                        <i class="bi bi-x-lg"></i>
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="dashboard-card hover-elevate table-card">
+                        <div class="card-body p-0">
+                            <div class="table-responsive table-wrapper">
+                                <table class="data-table">
+                                    <thead class="table-thead-bg">
+                                        <tr>
+                                            <th class="table-th-sticky table-th-w-22">User</th>
+                                            <th class="table-th-sticky table-th-w-12">Role</th>
+                                            <th class="table-th-sticky table-th-w-15 cell-text-center">Unit</th>
+                                            <th class="table-th-sticky table-th-w-10 cell-text-center">Status</th>
+                                            <th class="table-th-sticky table-th-w-15">Last Login</th>
+                                            <th class="table-th-sticky table-th-w-16 cell-actions-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody style="background: white;">
+                                        <?php if (empty($users)): ?>
+                                            <tr>
+                                                <td colspan="6" class="cell-padding-20 text-center text-muted">No
+                                                    staff records found match your criteria.</td>
+                                            </tr>
+                                        <?php endif; ?>
+                                        <?php foreach ($users as $u):
+                                            $initial = strtoupper(substr($u['full_name'], 0, 1));
+                                            $role_class = 'badge-role-' . $u['role'];
+                                            $role_label = ['super_admin' => 'Super Admin', 'head_hr' => 'Admin (HRD)', 'immediate_head' => 'Head', 'user' => 'Staff'][$u['role']] ?? ucfirst($u['role']);
+                                            ?>
+                                            <tr class="table-row-border">
+                                                <td class="cell-padding-20">
+                                                    <div class="user-flex">
+                                                        <?php 
+                                                        $manage_pic = !empty($u['profile_picture']) ? PUBLIC_ROOT . $u['profile_picture'] : PUBLIC_ROOT . get_default_profile_picture($u['role']);
+                                                        ?>
+                                                        <img src="<?php echo $manage_pic; ?>" class="user-avatar-img">
+                                                        <div>
+                                                            <div class="user-name-text">
+                                                                <?php echo htmlspecialchars($u['full_name']); ?>
+                                                            </div>
+                                                            <div class="user-meta-compact">
+                                                                <span><i class="bi bi-envelope-at"></i> <?php echo htmlspecialchars($u['gmail'] ?: 'No Email'); ?></span>
+                                                                <span class="meta-divider">•</span>
+                                                                <span><i class="bi bi-hash"></i> <?php echo htmlspecialchars($u['employee_number'] ?: '---'); ?></span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td><span
+                                                        class="badge <?php echo $role_class; ?>"><?php echo $role_label; ?></span>
+                                                </td>
+                                                <td class="cell-text-center">
+                                                    <div class="office-text">
+                                                        <?php echo $u['office_station'] ?: '-'; ?>
+                                                    </div>
+                                                </td>
+                                                <td class="cell-text-center">
+                                                    <span
+                                                        class="status-check-badge <?php echo $u['is_active'] ? 'bg-success-light text-success' : 'bg-light text-muted'; ?>">
+                                                        <?php echo $u['is_active'] ? 'Active' : 'Inactive'; ?>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="last-login-text">
+                                                        <?php echo $u['last_login'] ? date('M d, Y', strtotime($u['last_login'])) : 'Never'; ?>
+                                                    </div>
+                                                </td>
+                                                <td class="cell-actions-right">
+                                                    <div class="actions-flex-end">
+                                                        <?php
+                                                        $can_manage_this = false;
+                                                        if ($_SESSION['role'] === 'super_admin') {
+                                                            $can_manage_this = true;
+                                                        } elseif ($_SESSION['role'] === 'head_hr') {
+                                                            if ($u['role'] !== 'super_admin' && $u['role'] !== 'head_hr')
+                                                                $can_manage_this = true;
+                                                        } elseif ($_SESSION['role'] === 'hr') {
+                                                            if ($u['role'] === 'user')
+                                                                $can_manage_this = true;
+                                                        }
+                                                        if ($can_manage_this):
+                                                            ?>
+                                                            <a href="<?php echo PUBLIC_ROOT; ?>index.php/admin/edit-user?id=<?php echo $u['id']; ?>"
+                                                                class="btn btn-secondary btn-sm btn-edit-user">Edit</a>
+                                                            <?php if ($u['id'] != $_SESSION['user_id']): ?>
+                                                                <button type="button"
+                                                                    onclick="confirmDelete(<?php echo $u['id']; ?>, '<?php echo addslashes($u['full_name']); ?>')"
+                                                                    class="btn btn-secondary btn-sm btn-delete-user">
+                                                                    <i class="bi bi-trash"></i>
+                                                                </button>
+                                                            <?php endif; ?>
+                                                        <?php else: ?>
+                                                            <span class="text-muted italic px-2">Protected</span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                <?php endif; ?>
+                <?php if ($view === 'notifications'): ?>
+                    <div class="notifications-view details-container max-w-1000 mx-auto">
+
+                        <!-- Profile Log Filter Bar -->
+                        <div class="filter-bar filter-bar-card mb-24">
+                            <form method="GET" class="filter-form filter-form-flex">
+                                <input type="hidden" name="view" value="notifications">
+
+                                <!-- Search Input -->
+                                <div class="filter-item search-wrapper">
+                                    <i class="bi bi-search search-icon"></i>
+                                    <input type="text" name="log_search"
+                                        value="<?php echo htmlspecialchars($_GET['log_search'] ?? ''); ?>"
+                                        placeholder="Search User, Position..." class="search-input">
+                                </div>
+
+                                <!-- Office Category -->
+                                <div class="filter-item select-wrapper min-w-160">
+                                    <select name="log_office" class="select-input">
+                                        <option value="">All Offices</option>
+                                        <?php if (!empty($office_categories)): ?>
+                                            <?php foreach ($office_categories as $cat): ?>
+                                                <option value="<?php echo htmlspecialchars($cat); ?>" <?php echo ($_GET['log_office'] ?? '') === $cat ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars($cat); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </select>
+                                    <i class="bi bi-chevron-down select-chevron"></i>
+                                </div>
+
+                                <!-- Date Range Redesign -->
+                                <div class="filter-item date-range-picker">
+                                    <div class="date-input-group">
+                                        <i class="bi bi-calendar-event date-icon"></i>
+                                        <input type="date" name="log_start_date"
+                                            value="<?php echo htmlspecialchars($_GET['log_start_date'] ?? ''); ?>"
+                                            class="date-field" title="Start Date">
+                                    </div>
+                                    <span class="range-divider">to</span>
+                                    <div class="date-input-group">
+                                        <i class="bi bi-calendar-check date-icon"></i>
+                                        <input type="date" name="log_end_date"
+                                            value="<?php echo htmlspecialchars($_GET['log_end_date'] ?? ''); ?>"
+                                            class="date-field" title="End Date">
+                                    </div>
+                                </div>
+
+                                <div class="filter-actions filter-actions-flex">
+                                    <button type="submit" class="btn-apply text-nowrap">
+                                        <i class="bi bi-funnel"></i> Apply Filters
+                                    </button>
+                                    <?php if (!empty($_GET['log_search']) || !empty($_GET['log_office']) || !empty($_GET['log_start_date']) || !empty($_GET['log_end_date'])): ?>
+                                        <a href="<?php echo PUBLIC_ROOT; ?>index.php/admin/manage-users?view=notifications"
+                                            class="btn-clear"><i class="bi bi-x-lg"></i></a>
+                                    <?php endif; ?>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="activity-wrapper">
+                            <div class="activity-feed">
+                                <?php if (empty($audit_logs)): ?>
+                                    <div class="empty-state-card">
+                                        <div class="empty-state-icon-box">
+                                            <i class="bi bi-bell-slash"></i>
+                                        </div>
+                                        <h3 class="user-name-text mb-2">No Recent Activity</h3>
+                                        <p class="text-muted">System-wide profile changes will appear here as they occur.</p>
+                                    </div>
+                                <?php else: ?>
+                                    <?php foreach ($audit_logs as $log):
+                                        $is_admin_action = strpos($log['action'], 'Admin') !== false || strpos($log['action'], 'Modified') !== false;
+                                        $badge_class = $is_admin_action ? 'badge-admin' : 'badge-profile';
+                                        $initials = strtoupper(substr($log['user_name'], 0, 1));
+                                        ?>
+                                        <div class="activity-item">
+                                            <div class="activity-avatar">
+                                                <?php 
+                                                $log_pic = !empty($log['profile_picture']) ? PUBLIC_ROOT . $log['profile_picture'] : PUBLIC_ROOT . get_default_profile_picture('user'); // Default to user if unknown in logs
+                                                ?>
+                                                <img src="<?php echo $log_pic; ?>" alt="" class="activity-avatar-img">
+                                            </div>
+                                            <div class="activity-content">
+                                                <div class="activity-header">
+                                                    <span
+                                                        class="activity-user-name"><?php echo htmlspecialchars($log['user_name']); ?></span>
+                                                    <span class="activity-time">
+                                                        <i class="bi bi-clock"></i>
+                                                        <?php
+                                                        $time = strtotime($log['created_at']);
+                                                        echo date('M d, Y', $time) . ' • ' . date('h:i A', $time);
+                                                        ?>
+                                                    </span>
+                                                </div>
+                                                <div class="activity-action-badge <?php echo $badge_class; ?>">
+                                                    <i
+                                                        class="bi <?php echo $is_admin_action ? 'bi-shield-shaded' : 'bi-person-circle'; ?> mr-1"></i>
+                                                    <?php echo htmlspecialchars($log['action']); ?>
+                                                </div>
+                                                <div class="activity-details">
+                                                    <?php echo htmlspecialchars($log['details']); ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </main>
+
+            <footer class="admin-footer">
+                <p>&copy; <?php echo date('Y'); ?> Electronic L&D Passbook. <span class="text-muted">Developed by ICT UNIT</span></p>
+            </footer>
+        </div>
+    </div>
+    <!-- Deletion Confirmation Modal -->
+    <div id="deleteModal" class="modal-overlay">
+        <div class="delete-modal shadow-lg-soft">
+            <div class="modal-header-danger">
+                <div class="danger-icon-circle">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+            </div>
+            <div class="modal-body">
+                <h3 class="modal-title">Confirm Deletion</h3>
+                <p class="modal-text">Are you sure you want to delete <strong id="deleteTargetName"></strong>? This
+                    action will permanently remove all associated data.</p>
+            </div>
+            <div class="modal-footer-actions">
+                <button type="button" class="btn-cancel" onclick="closeModal('deleteModal')">Cancel</button>
+                <form id="deleteForm" method="POST" class="m-0">
+                    <input type="hidden" name="user_id" id="deleteUserId">
+                    <button type="submit" name="delete_user" class="btn-confirm-delete">Delete Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="<?php echo PUBLIC_ROOT; ?>js/admin/manage_users.js?v=<?php echo time(); ?>"></script>
+</body>
+
+</html>
